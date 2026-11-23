@@ -1,0 +1,48 @@
+{
+  "name": "buspilot-admin",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "dev": "nuxt dev --port 3100",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview --port 3100",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "nuxt typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "db:types": "supabase gen types typescript --db-url postgresql://postgres:postgres@127.0.0.1:55322/postgres --schema public > app/types/database.types.ts"
+  },
+  "dependencies": {
+    "@mdi/font": "^7.4.47",
+    "@nuxtjs/i18n": "^10.6.0",
+    "@nuxtjs/supabase": "^2.1.0",
+    "@supabase/supabase-js": "^2.119.2",
+    "maplibre-gl": "^6.19.0",
+    "nuxt": "^4.6.4",
+    "uqr": "^0.1.3",
+    "vue": "^3.5.46",
+    "vue-router": "^5.5.1",
+    "vuetify": "^4.3.4",
+    "vuetify-nuxt-module": "1.0.0-rc.6"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.17.0",
+    "@nuxt/test-utils": "^4.4.0",
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^24.0.0",
+    "@vitejs/plugin-vue": "^6.0.11",
+    "@vue/test-utils": "^2.6.0",
+    "eslint": "^10.15.0",
+    "happy-dom": "^21.0.4",
+    "supabase": "3.3.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.1.1",
+    "vue-tsc": "^3.3.14"
+  },
+  "packageManager": "pnpm@12.14.0"
+}
