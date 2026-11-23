@@ -21,12 +21,13 @@ const states = shallowRef<StateRow[]>([])
 const activeTrips = shallowRef<{ id: string, status: string }[]>([])
 const now = ref(new Date())
 
-const { loading, error, reload } = useOperatorLoader(async (operatorId) => {
+const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale) => {
   now.value = new Date()
   const [v, s] = await Promise.all([
     supabase.from('vehicle').select('*').eq('operator_id', operatorId).order('name'),
     supabase.from('vehicle_state').select('*').eq('operator_id', operatorId),
   ])
+  if (isStale()) return
   if (v.error) throw v.error
   if (s.error) throw s.error
   vehicles.value = v.data
@@ -34,6 +35,7 @@ const { loading, error, reload } = useOperatorLoader(async (operatorId) => {
   const tripIds = s.data.map(x => x.trip_instance_id).filter((id): id is string => !!id)
   if (tripIds.length > 0) {
     const ti = await supabase.from('trip_instance').select('id, status').in('id', tripIds)
+    if (isStale()) return
     if (ti.error) throw ti.error
     activeTrips.value = ti.data
   }

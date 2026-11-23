@@ -17,13 +17,14 @@ const text = useText()
 const routes = shallowRef<RouteRow[]>([])
 const dialog = ref(false)
 
-const { loading, error } = useOperatorLoader(async (operatorId) => {
+const { loading, error } = useOperatorLoader(async (operatorId, isStale) => {
   const { data, error: err } = await supabase
     .from('route')
     .select('*, trip_pattern(id), audience_route(can_see_map, audience(name))')
     .eq('operator_id', operatorId)
     .order('sort_order')
     .order('short_name')
+  if (isStale()) return
   if (err) throw err
   routes.value = data as unknown as RouteRow[]
 })

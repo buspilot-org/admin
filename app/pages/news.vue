@@ -20,13 +20,14 @@ const links = shallowRef<LinkRow[]>([])
 const audiences = shallowRef<{ id: string, name: unknown }[]>([])
 const routes = shallowRef<{ id: string, name: unknown }[]>([])
 
-const { loading, error, reload } = useOperatorLoader(async (operatorId) => {
+const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale) => {
   const [p, l, a, r] = await Promise.all([
     supabase.from('post').select('*').eq('operator_id', operatorId).order('created_at', { ascending: false }),
     supabase.from('operator_link').select('*').eq('operator_id', operatorId).order('sort_order'),
     supabase.from('audience').select('id, name').eq('operator_id', operatorId).order('created_at'),
     supabase.from('route').select('id, name').eq('operator_id', operatorId).order('sort_order'),
   ])
+  if (isStale()) return
   for (const res of [p, l, a, r]) if (res.error) throw res.error
   posts.value = p.data ?? []
   links.value = l.data ?? []

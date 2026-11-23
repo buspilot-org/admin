@@ -8,10 +8,10 @@ export interface Notice {
 export function useNotify() {
   const notices = useState<Notice[]>('notices', () => [])
   const { t } = useI18n()
-  let next = Date.now()
+  const next = useState('notice-seq', () => 0)
 
   function push(text: string, color: Notice['color']) {
-    notices.value = [...notices.value, { id: next++, text, color }]
+    notices.value = [...notices.value, { id: ++next.value, text, color }]
   }
 
   return {

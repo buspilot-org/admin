@@ -45,12 +45,15 @@ async function verify() {
     error.value = t('auth.invalidCode')
     return
   }
-  const target = redirect.pluck()
-  await navigateTo(target && target.startsWith('/') && !target.startsWith('//') ? target : '/')
+  await navigateTo(safeTarget(redirect.pluck()))
+}
+
+function safeTarget(target: string | null) {
+  return target && target.startsWith('/') && !target.startsWith('//') ? target : '/'
 }
 
 watchEffect(() => {
-  if (session.value && step.value === 'email') navigateTo('/')
+  if (session.value && step.value === 'email') navigateTo(safeTarget(redirect.pluck()))
 })
 </script>
 

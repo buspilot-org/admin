@@ -3,20 +3,20 @@
 // Rendered at creation, because the code is shown only once.
 import { useI18n } from 'vue-i18n'
 
-const props = defineProps<{
+defineProps<{
   code: string
   joinUrl: string
   operatorName: string
   audienceName: string
   label?: string | null
-  expiresAt?: string | null
+  /** Last valid day (YYYY-MM-DD) in the operator's time zone. */
+  expiresDate?: string | null
 }>()
 
 const { t } = useI18n()
 const SHEET_LANGUAGES = ['ja', 'en', 'de'] as const
 type SheetLanguage = typeof SHEET_LANGUAGES[number]
 const tl = (key: string, lang: SheetLanguage, named: Record<string, unknown> = {}) => t(key, named, { locale: lang })
-const expires = computed(() => (props.expiresAt ? props.expiresAt.slice(0, 10) : null))
 </script>
 
 <template>
@@ -29,9 +29,9 @@ const expires = computed(() => (props.expiresAt ? props.expiresAt.slice(0, 10) :
     <div class="invite-sheet__main">
       <QrCode :value="joinUrl" :size="200" :label="t('invite.qrLabel')" />
       <div>
-        <div class="invite-sheet__code-label">{{ tl('sheet.code', 'ja') }} / Code</div>
+        <div class="invite-sheet__code-label">{{ SHEET_LANGUAGES.map(l => tl('sheet.code', l)).join(' / ') }}</div>
         <div class="invite-sheet__code" data-testid="invite-code">{{ code }}</div>
-        <div v-if="expires" class="invite-sheet__expires">{{ tl('sheet.expires', 'ja', { date: expires }) }} · {{ tl('sheet.expires', 'en', { date: expires }) }}</div>
+        <div v-if="expiresDate" class="invite-sheet__expires">{{ SHEET_LANGUAGES.map(l => tl('sheet.expires', l, { date: expiresDate })).join(' · ') }}</div>
       </div>
     </div>
     <section v-for="lang in SHEET_LANGUAGES" :key="lang" class="invite-sheet__lang" :lang="lang">

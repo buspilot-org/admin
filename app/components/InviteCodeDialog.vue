@@ -20,7 +20,7 @@ const label = ref('')
 const expiresDate = ref('')
 const maxUses = ref('')
 const busy = ref(false)
-const created = ref<{ code: string, expiresAt: string | null, label: string | null } | null>(null)
+const created = ref<{ code: string, expiresDate: string | null, label: string | null } | null>(null)
 const confirmClose = ref(false)
 
 watch(open, (isOpen) => {
@@ -33,7 +33,9 @@ watch(open, (isOpen) => {
 })
 
 const maxUsesValue = computed(() => (maxUses.value.trim() === '' ? null : Number(maxUses.value)))
-const valid = computed(() => maxUsesValue.value === null || (Number.isInteger(maxUsesValue.value) && maxUsesValue.value > 0))
+const today = computed(() => dateInTimeZone(new Date(), op.timezone.value))
+const expiryInPast = computed(() => !!expiresDate.value && expiresDate.value < today.value)
+const valid = computed(() => !expiryInPast.value && (maxUsesValue.value === null || (Number.isInteger(maxUsesValue.value) && maxUsesValue.value > 0)))
 const joinUrl = computed(() => (created.value ? inviteJoinUrl(String(config.public.riderJoinUrl), created.value.code) : ''))
 
 async function create() {
@@ -52,7 +54,7 @@ async function create() {
   await Promise.all((['ja', 'en', 'de'] as const).map(l => nuxtApp.$i18n.loadLocaleMessages(l).catch(() => {})))
   busy.value = false
   if (error || !row) return notify.error(error ?? t('invite.createFailed'))
-  created.value = { code: row.code, expiresAt: expiresAt ?? null, label: label.value.trim() || null }
+  created.value = { code: row.code, expiresDate: expiresDate.value || null, label: label.value.trim() || null }
   emit('created')
 }
 
@@ -94,7 +96,7 @@ function close() {
       <v-card-text>
         <p class="text-body-2 mb-4">{{ t('invite.newHint', { audience: audienceName }) }}</p>
         <v-text-field v-model="label" :label="t('invite.label')" :hint="t('invite.labelHint')" persistent-hint class="mb-2" data-testid="invite-label" />
-        <v-text-field v-model="expiresDate" type="date" :label="t('invite.expires')" />
+        <v-text-field v-model="expiresDate" type="date" :min="today" :label="t('invite.expires')" :error-messages="expiryInPast ? [t('invite.expiryInPast')] : []" />
         <v-text-field v-model="maxUses" type="number" min="1" :label="t('invite.maxUses')" :hint="t('invite.maxUsesHint')" persistent-hint />
       </v-card-text>
       <v-card-actions>
@@ -114,7 +116,7 @@ function close() {
             :operator-name="op.operator.value ? text(op.operator.value.name) : ''"
             :audience-name="audienceName"
             :label="created.label"
-            :expires-at="created.expiresAt"
+            :expires-date="created.expiresDate"
           />
         </div>
       </v-card-text>
@@ -134,7 +136,7 @@ function close() {
           :operator-name="op.operator.value ? text(op.operator.value.name) : ''"
           :audience-name="audienceName"
           :label="created.label"
-          :expires-at="created.expiresAt"
+          :expires-date="created.expiresDate"
         />
       </div>
     </Teleport>

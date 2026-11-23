@@ -23,8 +23,9 @@ interface ExceptionForm { start: string, end: string, type: 'removed' | 'added',
 const emptyException = (): ExceptionForm => ({ start: '', end: '', type: 'removed', reason: '' })
 const exceptionForm = ref<Record<string, ExceptionForm>>({})
 
-const { loading, error, reload } = useOperatorLoader(async (operatorId) => {
+const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale) => {
   const data = await loadSchedule(operatorId)
+  if (isStale()) return
   patterns.value = data.patterns
   trips.value = data.trips
   calendars.value = data.calendars

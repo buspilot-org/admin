@@ -26,6 +26,9 @@ const config = useRuntimeConfig()
 const container = ref<HTMLDivElement | null>(null)
 const failed = ref(false)
 let map: MapLibreMap | null = null
+// Set on the first 'load'. isStyleLoaded() is also false while tiles load,
+// which would drop updates.
+let ready = false
 
 function stopFeatures() {
   // Group visits per location, so a stop served twice shows "2 · 5".
@@ -62,7 +65,7 @@ function fit() {
 }
 
 function render() {
-  if (!map || !map.isStyleLoaded()) return
+  if (!map || !ready) return
   const color = `#${props.color}`
   const line = map.getSource('route-line') as GeoJSONSource | undefined
   const stops = map.getSource('route-stops') as GeoJSONSource | undefined
@@ -100,10 +103,13 @@ onMounted(() => {
       attributionControl: { compact: true },
     })
     map.addControl(new NavigationControl({ showCompass: false }), 'top-right')
-    map.on('load', render)
+    map.on('load', () => {
+      ready = true
+      render()
+    })
     map.on('error', (e: { error?: { message?: string } }) => {
       // Tile or glyph errors are not fatal; a failing style is.
-      if (!map?.isStyleLoaded() && String(e.error?.message ?? '').includes('style')) failed.value = true
+      if (!ready && String(e.error?.message ?? '').includes('style')) failed.value = true
     })
   }
   catch {
@@ -116,6 +122,7 @@ watch(() => [props.line, props.stops, props.color], render, { deep: true })
 onBeforeUnmount(() => {
   map?.remove()
   map = null
+  ready = false
 })
 </script>
 

@@ -26,7 +26,7 @@ const selected = ref<string | null>(null)
 const dialog = ref(false)
 const id = computed(() => String(routeParam.params.id))
 
-const { loading, error, reload } = useOperatorLoader(async (operatorId) => {
+const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale) => {
   const [r, p] = await Promise.all([
     supabase.from('route').select('*').eq('id', id.value).eq('operator_id', operatorId).maybeSingle(),
     supabase
@@ -36,6 +36,7 @@ const { loading, error, reload } = useOperatorLoader(async (operatorId) => {
       .eq('operator_id', operatorId)
       .order('name'),
   ])
+  if (isStale()) return
   if (r.error) throw r.error
   if (p.error) throw p.error
   route.value = r.data
@@ -49,6 +50,7 @@ const { loading, error, reload } = useOperatorLoader(async (operatorId) => {
   const map = new Map<string, LngLat>()
   if (stopIds.length > 0) {
     const loc = await supabase.from('stop_location').select('id, location').in('id', stopIds)
+    if (isStale()) return
     if (loc.error) throw loc.error
     for (const row of loc.data) {
       const g = tryParseWkb(row.location)

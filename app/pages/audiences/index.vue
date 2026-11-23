@@ -8,7 +8,7 @@ definePageMeta({ roles: ['owner', 'editor'] })
 type AudienceRow = Database['public']['Tables']['audience']['Row'] & {
   audience_route: { can_see_map: boolean, route: { name: unknown, short_name: string | null, color: string | null } | null }[]
   membership: { count: number }[]
-  invite_code: { count: number }[]
+  invite_code: { revoked_at: string | null, expires_at: string | null, max_uses: number | null, uses: number }[]
 }
 
 const { t } = useI18n()
@@ -18,16 +18,16 @@ const text = useText()
 const notify = useNotify()
 
 const audiences = shallowRef<AudienceRow[]>([])
-const SELECT: string = '*, audience_route(can_see_map, route(name, short_name, color)), membership(count), invite_code(count)'
+const SELECT: string = '*, audience_route(can_see_map, route(name, short_name, color)), membership(count), invite_code(revoked_at, expires_at, max_uses, uses)'
 
-const { loading, error } = useOperatorLoader(async (operatorId) => {
+const { loading, error } = useOperatorLoader(async (operatorId, isStale) => {
   const { data, error: err } = await supabase
     .from('audience')
     .select(SELECT)
     .eq('operator_id', operatorId)
     .is('membership.revoked_at', null)
-    .is('invite_code.revoked_at', null)
     .order('created_at')
+  if (isStale()) return
   if (err) throw err
   audiences.value = data as unknown as AudienceRow[]
 })
@@ -78,7 +78,7 @@ async function create() {
               <span v-if="a.audience_route.length === 0" class="text-medium-emphasis">—</span>
             </td>
             <td class="tabular">{{ a.membership[0]?.count ?? 0 }}</td>
-            <td class="tabular">{{ a.invite_code[0]?.count ?? 0 }}</td>
+            <td class="tabular">{{ a.invite_code.filter(c => inviteStatus(c) === 'active').length }}</td>
           </tr>
         </tbody>
       </v-table>

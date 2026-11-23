@@ -25,8 +25,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     await op.load(userId)
   }
   catch {
-    // Network or API error: let the page show its own error state.
-    return
+    // Network or API error: pages for all staff show their own error state;
+    // pages limited to some roles are not opened without knowing the role.
+    return to.meta.roles && to.path !== '/' ? navigateTo('/') : undefined
   }
 
   if (!op.operator.value) {

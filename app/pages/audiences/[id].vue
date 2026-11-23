@@ -25,7 +25,7 @@ const name = ref<I18nText>({})
 const access = ref<Record<string, 'none' | 'eta' | 'map'>>({})
 const savedAccess = ref<Record<string, 'none' | 'eta' | 'map'>>({})
 
-const { loading, error, reload } = useOperatorLoader(async (operatorId) => {
+const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale) => {
   const [a, r, ar, c, m] = await Promise.all([
     supabase.from('audience').select('*').eq('id', id.value).eq('operator_id', operatorId).maybeSingle(),
     supabase.from('route').select('id, name, short_name, color, visibility, active').eq('operator_id', operatorId).order('sort_order').order('short_name'),
@@ -34,6 +34,7 @@ const { loading, error, reload } = useOperatorLoader(async (operatorId) => {
     supabase.from('invite_code').select('id, operator_id, audience_id, label, expires_at, max_uses, uses, revoked_at, created_by, created_at').eq('audience_id', id.value).order('created_at', { ascending: false }),
     supabase.from('membership').select('id', { count: 'exact', head: true }).eq('audience_id', id.value).is('revoked_at', null),
   ])
+  if (isStale()) return
   for (const res of [a, r, ar, c, m]) if (res.error) throw res.error
   audience.value = a.data
   routes.value = r.data ?? []
@@ -83,7 +84,12 @@ const routeVisibility = (r: RouteRow) => r.visibility ?? op.operator.value?.defa
 // Invite codes
 const createOpen = ref(false)
 const revoking = ref<CodeRow | null>(null)
-const revokeOpen = computed({ get: () => !!revoking.value, set: (v) => { if (!v) revoking.value = null } })
+const revokeOpen = computed({ get: () => !!revoking.value, set: (v) => {
+  if (!v) {
+    revoking.value = null
+    alsoMemberships.value = false
+  }
+} })
 const alsoMemberships = ref(false)
 async function revoke() {
   if (!revoking.value) return

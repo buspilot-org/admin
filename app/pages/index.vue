@@ -34,19 +34,23 @@ const patternStops = shallowRef<PatternStopRow[]>([])
 const plannedOnly = shallowRef<{ id: string, start_time: number, pattern: string, route: PatternRowRoute | null }[]>([])
 type PatternRowRoute = { name: unknown, short_name: string | null, color: string | null, text_color: string | null }
 
-const { loading, error, reload } = useOperatorLoader(async (operatorId) => {
+const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale) => {
   now.value = new Date()
   today.value = dateInTimeZone(now.value, op.timezone.value)
+  const yesterday = dateInTimeZone(new Date(now.value.getTime() - 86_400_000), op.timezone.value)
   const [inst, veh, st, schedule] = await Promise.all([
     supabase
       .from('trip_instance')
       .select(INSTANCE_SELECT)
       .eq('operator_id', operatorId)
-      .eq('service_date', today.value),
+      // Trips past midnight belong to yesterday's service date; keep those
+      // still running.
+      .or(`service_date.eq.${today.value},and(service_date.eq.${yesterday},status.eq.active)`),
     supabase.from('vehicle').select('id, name, active').eq('operator_id', operatorId).order('name'),
     supabase.from('vehicle_state').select('vehicle_id, recorded_at, speed_kmh').eq('operator_id', operatorId),
     loadSchedule(operatorId),
   ])
+  if (isStale()) return
   if (inst.error) throw inst.error
   if (veh.error) throw veh.error
   if (st.error) throw st.error
@@ -62,6 +66,7 @@ const { loading, error, reload } = useOperatorLoader(async (operatorId) => {
       .from('pattern_stop')
       .select('pattern_id, stop_sequence, arrival_offset, stop(name)')
       .in('pattern_id', patternIds)
+    if (isStale()) return
     if (ps.error) throw ps.error
     patternStops.value = ps.data as unknown as PatternStopRow[]
   }
@@ -192,6 +197,7 @@ const statusColor: Record<string, string> = { planned: 'default', active: 'prima
 
       <template v-if="plannedOnly.length > 0">
         <h3 class="text-subtitle-2 mt-6 mb-2">{{ t('today.plannedBySchedule') }}</h3>
+        <div class="text-caption text-medium-emphasis mb-2">{{ t('schedule.preview.holidayNote') }}</div>
         <v-table density="compact" class="border rounded" data-testid="planned-trips">
           <tbody>
             <tr v-for="trip in plannedOnly" :key="trip.id">
