@@ -49,7 +49,7 @@ async function verify() {
 }
 
 function safeTarget(target: string | null) {
-  return target && target.startsWith('/') && !target.startsWith('//') ? target : '/'
+  return target && /^\/(?![/\\])/.test(target) ? target : '/'
 }
 
 watchEffect(() => {

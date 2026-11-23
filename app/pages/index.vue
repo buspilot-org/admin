@@ -37,7 +37,7 @@ type PatternRowRoute = { name: unknown, short_name: string | null, color: string
 const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale) => {
   now.value = new Date()
   today.value = dateInTimeZone(now.value, op.timezone.value)
-  const yesterday = dateInTimeZone(new Date(now.value.getTime() - 86_400_000), op.timezone.value)
+  const yesterday = addDays(today.value, -1)
   const [inst, veh, st, schedule] = await Promise.all([
     supabase
       .from('trip_instance')
@@ -54,8 +54,9 @@ const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale)
   if (inst.error) throw inst.error
   if (veh.error) throw veh.error
   if (st.error) throw st.error
+  // Yesterday's trips that still run come first, then by start time.
   instances.value = (inst.data as unknown as InstanceRow[]).sort(
-    (a, b) => (a.trip?.start_time ?? 0) - (b.trip?.start_time ?? 0),
+    (a, b) => a.service_date.localeCompare(b.service_date) || (a.trip?.start_time ?? 0) - (b.trip?.start_time ?? 0),
   )
   vehicles.value = veh.data
   states.value = st.data
@@ -75,7 +76,7 @@ const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale)
   }
 
   // Scheduled trips the engine has not created an instance for (yet).
-  const created = new Set(instances.value.map(i => i.trip_id))
+  const created = new Set(instances.value.filter(i => i.service_date === today.value).map(i => i.trip_id))
   const patternById = new Map(schedule.patterns.map(p => [p.id, p]))
   plannedOnly.value = tripsOnDate(schedule.trips, schedule.calendars, today.value)
     .filter(trip => !created.has(trip.id))

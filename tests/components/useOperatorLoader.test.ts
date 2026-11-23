@@ -44,4 +44,33 @@ describe('useOperatorLoader', () => {
     expect(loader.loading.value).toBe(false)
     current.value = null
   })
+  it('stays loading while the current operator\'s load runs', async () => {
+    const current = useState<string | null>('operator-current')
+    current.value = 'op-a'
+    const gates: Record<string, ReturnType<typeof deferred>> = { 'op-a': deferred(), 'op-b': deferred() }
+    let loader!: ReturnType<typeof useOperatorLoader>
+
+    await mountSuspended(defineComponent({
+      setup() {
+        loader = useOperatorLoader(async (id) => {
+          await gates[id]!.promise
+        })
+        return () => h('div')
+      },
+    }))
+
+    current.value = 'op-b'
+    await nextTick()
+    // The old load finishes first: the new one is still running.
+    gates['op-a']!.resolve()
+    await gates['op-a']!.promise
+    await nextTick()
+    expect(loader.loading.value).toBe(true)
+
+    gates['op-b']!.resolve()
+    await gates['op-b']!.promise
+    await nextTick()
+    expect(loader.loading.value).toBe(false)
+    current.value = null
+  })
 })

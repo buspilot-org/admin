@@ -59,3 +59,9 @@ export function daysInRange(start: string, end: string): number {
   }
   return Math.round((toUtc(end) - toUtc(start)) / 86_400_000) + 1
 }
+
+/** A YYYY-MM-DD date moved by whole calendar days (no time zone involved). */
+export function addDays(date: string, days: number): string {
+  const [y, m, d] = date.split('-').map(Number) as [number, number, number]
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10)
+}

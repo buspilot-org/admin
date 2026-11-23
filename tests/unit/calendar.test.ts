@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { daysInRange, indexesToWeekdays, runsOn, weekdayIndex, weekdaysToIndexes } from '../../app/utils/calendar'
+import { addDays, daysInRange, indexesToWeekdays, runsOn, weekdayIndex, weekdaysToIndexes } from '../../app/utils/calendar'
 
 // The seed calendar: Monday–Friday, school year 2026/27, winter break removed.
 const schoolDays = { weekdays: 31, start_date: '2026-04-01', end_date: '2027-03-31', skip_national_holidays: true }
@@ -53,5 +53,13 @@ describe('daysInRange', () => {
   it('counts inclusive days', () => {
     expect(daysInRange('2026-12-24', '2027-01-07')).toBe(15)
     expect(daysInRange('2026-11-23', '2026-11-23')).toBe(1)
+  })
+})
+
+describe('addDays', () => {
+  it('moves by calendar days across months and years', () => {
+    expect(addDays('2026-11-23', -1)).toBe('2026-11-22')
+    expect(addDays('2027-01-01', -1)).toBe('2026-12-31')
+    expect(addDays('2026-03-29', 1)).toBe('2026-03-30')
   })
 })
