@@ -1,0 +1,37 @@
+/* Japanese first: system fonts that cover kana and kanji. */
+html,
+body {
+  font-family: system-ui, -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+}
+
+.v-application {
+  font-family: inherit;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.color-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  vertical-align: middle;
+  border: 1px solid rgb(0 0 0 / 20%);
+}
+
+/* Printing an invite sheet: only the sheet (teleported to <body>) is printed. */
+.print-sheet {
+  display: none;
+}
+
+@media print {
+  body.printing-sheet > *:not(.print-sheet) {
+    display: none !important;
+  }
+
+  body.printing-sheet > .print-sheet {
+    display: block;
+  }
+}

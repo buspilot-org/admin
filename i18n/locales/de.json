@@ -1,0 +1,373 @@
+{
+  "common": {
+    "actions": "Aktionen",
+    "add": "Hinzufügen",
+    "cancel": "Abbrechen",
+    "create": "Anlegen",
+    "delete": "Löschen",
+    "deleted": "Gelöscht",
+    "done": "Fertig",
+    "edit": "Bearbeiten",
+    "error": "Etwas ist schiefgegangen: {message}",
+    "loadFailed": "Daten konnten nicht geladen werden: {message}",
+    "no": "Nein",
+    "yes": "Ja",
+    "refresh": "Aktualisieren",
+    "save": "Speichern",
+    "saved": "Gespeichert"
+  },
+  "nav": {
+    "today": "Heute",
+    "routes": "Linien und Haltestellen",
+    "schedule": "Fahrplan",
+    "vehicles": "Fahrzeuge",
+    "audiences": "Gruppen und Einladungscodes",
+    "news": "Neuigkeiten",
+    "settings": "Betreiber-Einstellungen",
+    "account": "Konto",
+    "language": "Sprache",
+    "menu": "Menü"
+  },
+  "roles": {
+    "owner": "Inhaber",
+    "editor": "Bearbeiter",
+    "driver": "Fahrer",
+    "signedInAs": "Angemeldet als {role}"
+  },
+  "theme": {
+    "system": "Design: wie System",
+    "light": "Design: hell",
+    "dark": "Design: dunkel"
+  },
+  "operator": {
+    "switch": "Betreiber wechseln"
+  },
+  "auth": {
+    "title": "Anmeldung zur Verwaltung",
+    "emailHint": "Wir schicken einen Einmalcode an Ihre E-Mail-Adresse. Kein Passwort nötig.",
+    "codeHint": "Wenn {email} ein Konto hat, ist ein Code unterwegs. Geben Sie ihn hier ein.",
+    "email": "E-Mail-Adresse",
+    "code": "Einmalcode",
+    "sendCode": "Code senden",
+    "signIn": "Anmelden",
+    "signOut": "Abmelden",
+    "otherEmail": "Andere E-Mail-Adresse verwenden",
+    "invalidCode": "Der Code ist falsch oder abgelaufen. Fordern Sie einen neuen an.",
+    "rateLimited": "Zu viele Anfragen. Bitte warten Sie eine Minute."
+  },
+  "noAccess": {
+    "title": "Kein Zugang zu einem Betreiber",
+    "text": "Ihr Konto gehört noch zu keinem Betreiber. Bitten Sie einen Inhaber Ihrer Organisation, Sie hinzuzufügen."
+  },
+  "form": {
+    "oneLanguageRequired": "Mindestens eine Sprache ausfüllen."
+  },
+  "languages": {
+    "ja": "Japanisch",
+    "en": "Englisch",
+    "de": "Deutsch",
+    "zh": "Chinesisch",
+    "ko": "Koreanisch",
+    "pt": "Portugiesisch",
+    "es": "Spanisch",
+    "vi": "Vietnamesisch",
+    "tl": "Tagalog"
+  },
+  "visibility": {
+    "public": "Öffentliche Karte",
+    "invited_map": "Eingeladene: Karte",
+    "invited_eta": "Eingeladene: nur Ankunftszeiten",
+    "default": "Betreiber-Standard ({v})",
+    "inherited": "Betreiber-Standard"
+  },
+  "visibilityHint": {
+    "public": "Alle mit dem Link sehen Karte, Haltestellen und Busposition.",
+    "invited_map": "Fahrgäste mit Einladungscode sehen die Karte, wenn ihre Gruppe darf; sonst Ankunftszeiten.",
+    "invited_eta": "Fahrgäste mit Einladungscode sehen nur Ankunftszeiten. Keine Karte, keine Haltestellenorte."
+  },
+  "contrast": {
+    "white": "Weiße Schrift",
+    "black": "Schwarze Schrift",
+    "AAA": "AAA",
+    "AA": "AA",
+    "AA-large": "Nur große Schrift",
+    "fail": "Schwer lesbar",
+    "invalid": "Farbe als sechs Hex-Ziffern eingeben, z. B. 1E6FD9."
+  },
+  "tripStatus": {
+    "planned": "Geplant",
+    "active": "Unterwegs",
+    "completed": "Beendet",
+    "cancelled": "Fällt aus"
+  },
+  "weekday": {
+    "short": {
+      "0": "Mo",
+      "1": "Di",
+      "2": "Mi",
+      "3": "Do",
+      "4": "Fr",
+      "5": "Sa",
+      "6": "So"
+    }
+  },
+  "today": {
+    "title": "Heute",
+    "date": "Betriebstag {date}",
+    "warnings": "Braucht Aufmerksamkeit",
+    "noWarnings": "Im Moment ist nichts zu tun.",
+    "offRoute": "{vehicle} ist von der Strecke abgewichen (seit {since}).",
+    "stale": "Keine neue Position von {vehicle} seit {time}.",
+    "noPosition": "Keine Position von {vehicle} während der Fahrt.",
+    "trips": "Fahrten je Fahrzeug",
+    "noVehicle": "Kein Fahrzeug zugeteilt",
+    "liveTrip": "Sonderfahrt",
+    "time": "Start",
+    "route": "Linie",
+    "status": "Status",
+    "currentStop": "Aktuelle Haltestelle",
+    "delay": "Verspätung",
+    "minutes": "{n} Min.",
+    "noInstances": "Für heute sind noch keine Fahrten angelegt",
+    "noInstancesText": "Die Engine legt die Fahrten des Tages aus dem Fahrplan an und verfolgt sie. Solange sie noch nicht gelaufen ist, zeigt die Liste unten den Fahrplan.",
+    "plannedBySchedule": "Laut Fahrplan geplant (nicht gestartet)"
+  },
+  "routes": {
+    "title": "Linien und Haltestellen",
+    "new": "Neue Linie",
+    "edit": "Linie bearbeiten",
+    "name": "Name",
+    "shortName": "Kurzname",
+    "color": "Farbe",
+    "visibility": "Sichtbarkeit",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "audiences": "Gruppen",
+    "patterns": "Verläufe",
+    "empty": "Noch keine Linien",
+    "emptyText": "Legen Sie hier eine Linie an. Eine Linie mit der Fahrzeug-App aufzeichnen (Haltestellen und Zeiten aus einer Fahrt) kommt in einer späteren Version.",
+    "notFound": "Linie nicht gefunden",
+    "noPatterns": "Noch keine Haltestellen",
+    "noPatternsText": "Haltestellen und Zeiten entstehen beim Aufzeichnen der Linie oder beim GTFS-Import. Beides kommt in einer späteren Version.",
+    "stop": "Haltestelle",
+    "arrival": "Ankunft",
+    "departure": "Abfahrt",
+    "minutesOffset": "{n} Min.",
+    "offsetsHint": "Zeiten in Minuten nach Fahrtbeginn.",
+    "servedTwice": "zweimal bedient",
+    "noLocation": "Kein Ort",
+    "map": "Linienkarte",
+    "mapFailed": "Die Karte konnte nicht angezeigt werden.",
+    "noShape": "Für diesen Verlauf ist noch keine Linie gezeichnet."
+  },
+  "schedule": {
+    "title": "Fahrplan",
+    "tabs": {
+      "trips": "Fahrten",
+      "calendars": "Kalender",
+      "preview": "Vorschau"
+    },
+    "pattern": "Verlauf",
+    "startTime": "Abfahrtszeit",
+    "calendar": "Kalender",
+    "headsign": "Angezeigtes Ziel",
+    "invalidTime": "Zeit wie 07:30 eingeben.",
+    "noTrips": "Noch keine Fahrten für diesen Verlauf.",
+    "noPatterns": "Noch keine Verläufe",
+    "noPatternsText": "Fahrten gehören zu einem Verlauf (Haltestellen und Zeiten). Verläufe entstehen beim Aufzeichnen einer Linie.",
+    "needCalendar": "Legen Sie zuerst einen Kalender an: Jede Fahrt verkehrt an den Tagen eines Kalenders.",
+    "trip": {
+      "new": "Neue Fahrt",
+      "edit": "Fahrt bearbeiten",
+      "copy": "Mit anderer Abfahrtszeit kopieren",
+      "copyHint": "Gleiche Haltestellen und Minuten wie die Fahrt um {time}, mit neuer Abfahrtszeit.",
+      "deleteTitle": "Fahrt löschen?",
+      "deleteText": "Die Fahrt um {time} und ihre Einträge ab heute werden gelöscht."
+    },
+    "calendars": {
+      "new": "Neuer Kalender",
+      "edit": "Kalender bearbeiten",
+      "name": "Name",
+      "weekdays": "Wochentage",
+      "from": "Gültig ab",
+      "to": "Gültig bis",
+      "endBeforeStart": "Muss am oder nach dem Startdatum liegen.",
+      "skipHolidays": "Kein Betrieb an Feiertagen",
+      "holidaysPending": "Feiertage werden berücksichtigt, sobald die Feiertagstabelle verfügbar ist.",
+      "noHolidays": "nicht an Feiertagen",
+      "tripCount": "{n} Fahrten",
+      "inUse": "Fahrten nutzen diesen Kalender",
+      "empty": "Noch keine Kalender"
+    },
+    "exceptions": {
+      "title": "Ausnahmen",
+      "none": "Keine Ausnahmen.",
+      "from": "Von",
+      "to": "Bis (optional)",
+      "type": "Art",
+      "removed": "Kein Betrieb",
+      "added": "Zusätzlicher Betrieb",
+      "reason": "Grund (z. B. Winterferien)",
+      "days": "{n} Tage"
+    },
+    "preview": {
+      "date": "Datum",
+      "none": "Keine Fahrten am {date}.",
+      "holidayNote": "Feiertage werden noch nicht berücksichtigt."
+    }
+  },
+  "vehicles": {
+    "title": "Fahrzeuge",
+    "new": "Neues Fahrzeug",
+    "edit": "Fahrzeug bearbeiten",
+    "name": "Name",
+    "capacity": "Plätze",
+    "traccarId": "Tracker (Traccar-Geräte-ID)",
+    "traccarHint": "Setzt das Buspilot-Team, damit niemand den Tracker eines anderen Betreibers verknüpfen kann.",
+    "noTracker": "Noch nicht verbunden",
+    "stateLabel": "Zustand",
+    "active": "Aktiv",
+    "empty": "Noch keine Fahrzeuge",
+    "lastPosition": "Letzte Position {date} {time}",
+    "state": {
+      "noData": "Keine Daten",
+      "onTrip": "Auf Fahrt",
+      "stale": "Position veraltet",
+      "idle": "Nicht auf Fahrt"
+    }
+  },
+  "audiences": {
+    "title": "Gruppen und Einladungscodes",
+    "subtitle": "Wer welche Linien sehen darf. Angezeigt wird nur die Anzahl der Mitglieder, nie wer sie sind.",
+    "new": "Neue Gruppe",
+    "name": "Name",
+    "nameCard": "Name",
+    "routes": "Linien",
+    "members": "Mitglieder",
+    "activeCodes": "Offene Codes",
+    "empty": "Noch keine Gruppen",
+    "emptyText": "Eine Gruppe sind Fahrgäste mit denselben Rechten, z. B. „Eltern Morgenlinie A“. Fahrgäste treten mit einem Einladungscode bei.",
+    "notFound": "Gruppe nicht gefunden",
+    "memberCount": "{n} Mitglieder",
+    "routesHint": "Nur Ankunftszeiten oder auch die Karte. Die Karte braucht eine passende Sichtbarkeit der Linie.",
+    "access": {
+      "none": "Kein Zugang",
+      "eta": "Ankunftszeiten",
+      "map": "Karte",
+      "mapNeedsVisibility": "Die Linie zeigt nur Ankunftszeiten (Sichtbarkeit)."
+    },
+    "deleteTitle": "Gruppe löschen?",
+    "deleteText": "Ihre Einladungscodes werden ungültig und ihre {n} Mitglieder verlieren den Zugang. Das lässt sich nicht rückgängig machen."
+  },
+  "invite": {
+    "title": "Einladungscodes",
+    "subtitle": "Fahrgäste treten dieser Gruppe mit einem Code bei. Codes werden gehasht gespeichert und nur einmal angezeigt.",
+    "new": "Neuer Einladungscode",
+    "newHint": "Mit dem Code treten Fahrgäste „{audience}“ bei.",
+    "label": "Bezeichnung",
+    "labelHint": "Für Sie, z. B. „Elternbrief April“. Steht auf dem Blatt.",
+    "expires": "Gültig bis",
+    "maxUses": "Höchstens nutzbar",
+    "maxUsesHint": "Leer = unbegrenzt",
+    "create": "Code erzeugen",
+    "createFailed": "Der Code konnte nicht erzeugt werden.",
+    "created": "Einladungscode erzeugt",
+    "shownOnce": "Der Code wird nur dieses eine Mal angezeigt. Drucken oder kopieren Sie ihn jetzt.",
+    "copy": "Code kopieren",
+    "copied": "Code kopiert",
+    "copyFailed": "Kopieren ist nicht möglich. Bitte notieren Sie den Code.",
+    "print": "Blatt drucken",
+    "closeTitle": "Ohne den Code schließen?",
+    "closeText": "Der Code kann nicht erneut angezeigt werden. Wenn er verloren geht, widerrufen Sie ihn und erzeugen einen neuen.",
+    "closeConfirm": "Schließen",
+    "qrLabel": "QR-Code zum Beitreten",
+    "createdAt": "Erzeugt",
+    "uses": "Nutzungen",
+    "status": "Status",
+    "none": "Noch keine Codes.",
+    "revoke": "Widerrufen",
+    "revokeTitle": "Code widerrufen?",
+    "revokeText": "Der Code funktioniert ab sofort nicht mehr.",
+    "revokeMemberships": "Auch Fahrgäste entfernen, die mit diesem Code beigetreten sind",
+    "revoked": "Code widerrufen",
+    "statuses": {
+      "active": "Aktiv",
+      "revoked": "Widerrufen",
+      "expired": "Abgelaufen",
+      "used_up": "Aufgebraucht"
+    },
+    "expiryInPast": "Das Ablaufdatum liegt in der Vergangenheit."
+  },
+  "sheet": {
+    "code": "Code",
+    "expires": "Gültig bis {date}",
+    "title": "So treten Sie bei",
+    "step1": "Öffnen Sie die Buspilot-App (oder scannen Sie den QR-Code mit der Handykamera).",
+    "step2": "Scannen Sie den QR-Code oder geben Sie den Code {code} ein.",
+    "step3": "Wählen Sie Ihre Haltestelle, um vor Ankunft des Busses benachrichtigt zu werden.",
+    "privacy": "Kein Name, keine E-Mail, keine Telefonnummer nötig. Geben Sie den Code nur innerhalb Ihrer Gruppe weiter."
+  },
+  "news": {
+    "title": "Neuigkeiten",
+    "tabs": {
+      "posts": "Beiträge",
+      "links": "Links und Kontakt"
+    },
+    "new": "Neuer Beitrag",
+    "edit": "Beitrag bearbeiten",
+    "postTitle": "Titel",
+    "body": "Text",
+    "audience": "Gruppe",
+    "allMembers": "Alle Mitglieder",
+    "route": "Linie",
+    "noRoute": "Keine bestimmte Linie",
+    "publish": "Veröffentlichen",
+    "draft": "Entwurf",
+    "publishNow": "Jetzt",
+    "publishAt": "Zu einer Zeit",
+    "publishedAt": "Veröffentlicht",
+    "expires": "Ausblenden ab",
+    "expiryBeforePublish": "Muss nach der Veröffentlichung liegen.",
+    "sendPush": "Benachrichtigung senden",
+    "sendPushHint": "Mitglieder, die Benachrichtigungen erlauben, erhalten eine bei Veröffentlichung.",
+    "suggestTranslations": "Übersetzungen vorschlagen",
+    "translationLater": "Maschinelle Übersetzung kommt in einer späteren Version.",
+    "status": "Status",
+    "statuses": {
+      "draft": "Entwurf",
+      "scheduled": "Geplant",
+      "published": "Veröffentlicht",
+      "expired": "Abgelaufen"
+    },
+    "empty": "Noch keine Beiträge",
+    "deleteTitle": "Beitrag löschen?"
+  },
+  "links": {
+    "new": "Neuer Link",
+    "edit": "Link bearbeiten",
+    "label": "Bezeichnung",
+    "url": "Adresse",
+    "order": "Reihenfolge",
+    "urlHint": "https://…, mailto:… oder tel:…",
+    "invalidUrl": "Mit https://, mailto: oder tel: beginnen.",
+    "empty": "Noch keine Links"
+  },
+  "settings": {
+    "title": "Betreiber-Einstellungen",
+    "general": "Allgemein",
+    "displayName": "Name für Fahrgäste",
+    "languages": "Sprachen",
+    "languagesHint": "Texte für Fahrgäste können in diesen Sprachen geschrieben werden.",
+    "timezone": "Zeitzone",
+    "invalidTimezone": "Unbekannte Zeitzone (z. B. Asia/Tokyo).",
+    "defaultVisibility": "Standard-Sichtbarkeit von Linien",
+    "branding": "Erscheinungsbild",
+    "color": "Farbe",
+    "logoUrl": "Logo-URL",
+    "logoHint": "https://-Adresse eines quadratischen Logos. Hochladen kommt später.",
+    "logoInvalid": "Bitte eine https://-Adresse angeben.",
+    "preview": "Vorschau",
+    "previewHint": "So sieht eine Karte in der Fahrgast-App aus.",
+    "sampleStop": "Nächster Bus an Kitano-zaka"
+  }
+}

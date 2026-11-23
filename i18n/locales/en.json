@@ -1,0 +1,373 @@
+{
+  "common": {
+    "actions": "Actions",
+    "add": "Add",
+    "cancel": "Cancel",
+    "create": "Create",
+    "delete": "Delete",
+    "deleted": "Deleted",
+    "done": "Done",
+    "edit": "Edit",
+    "error": "Something went wrong: {message}",
+    "loadFailed": "Could not load data: {message}",
+    "no": "No",
+    "yes": "Yes",
+    "refresh": "Refresh",
+    "save": "Save",
+    "saved": "Saved"
+  },
+  "nav": {
+    "today": "Today",
+    "routes": "Routes and stops",
+    "schedule": "Schedule",
+    "vehicles": "Vehicles",
+    "audiences": "Audiences and invite codes",
+    "news": "News",
+    "settings": "Operator settings",
+    "account": "Account",
+    "language": "Language",
+    "menu": "Menu"
+  },
+  "roles": {
+    "owner": "Owner",
+    "editor": "Editor",
+    "driver": "Driver",
+    "signedInAs": "Signed in as {role}"
+  },
+  "theme": {
+    "system": "Theme: follow system",
+    "light": "Theme: light",
+    "dark": "Theme: dark"
+  },
+  "operator": {
+    "switch": "Switch operator"
+  },
+  "auth": {
+    "title": "Sign in to the admin console",
+    "emailHint": "We send a one-time code to your email address. No password needed.",
+    "codeHint": "If {email} has an account, a code is on its way. Enter it here.",
+    "email": "Email address",
+    "code": "One-time code",
+    "sendCode": "Send code",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "otherEmail": "Use another email address",
+    "invalidCode": "The code is wrong or has expired. Request a new one.",
+    "rateLimited": "Too many requests. Please wait a minute and try again."
+  },
+  "noAccess": {
+    "title": "No operator access",
+    "text": "Your account is not staff at any operator yet. Ask an owner of your organisation to add you."
+  },
+  "form": {
+    "oneLanguageRequired": "Fill in at least one language."
+  },
+  "languages": {
+    "ja": "Japanese",
+    "en": "English",
+    "de": "German",
+    "zh": "Chinese",
+    "ko": "Korean",
+    "pt": "Portuguese",
+    "es": "Spanish",
+    "vi": "Vietnamese",
+    "tl": "Tagalog"
+  },
+  "visibility": {
+    "public": "Public map",
+    "invited_map": "Invited riders: map",
+    "invited_eta": "Invited riders: arrival times only",
+    "default": "Operator default ({v})",
+    "inherited": "operator default"
+  },
+  "visibilityHint": {
+    "public": "Anyone with the link sees the map, stops and bus position.",
+    "invited_map": "Riders with an invite code see the map if their audience may; others see arrival times.",
+    "invited_eta": "Riders with an invite code see arrival times only. No map, no stop locations."
+  },
+  "contrast": {
+    "white": "White text",
+    "black": "Black text",
+    "AAA": "AAA",
+    "AA": "AA",
+    "AA-large": "Large text only",
+    "fail": "Hard to read",
+    "invalid": "Enter a colour as six hex digits, for example 1E6FD9."
+  },
+  "tripStatus": {
+    "planned": "Planned",
+    "active": "Running",
+    "completed": "Finished",
+    "cancelled": "Cancelled"
+  },
+  "weekday": {
+    "short": {
+      "0": "Mon",
+      "1": "Tue",
+      "2": "Wed",
+      "3": "Thu",
+      "4": "Fri",
+      "5": "Sat",
+      "6": "Sun"
+    }
+  },
+  "today": {
+    "title": "Today",
+    "date": "Service date {date}",
+    "warnings": "Needs attention",
+    "noWarnings": "Nothing needs attention right now.",
+    "offRoute": "{vehicle} is off route (since {since}).",
+    "stale": "No new position from {vehicle} since {time}.",
+    "noPosition": "No position from {vehicle} during its trip.",
+    "trips": "Trips per vehicle",
+    "noVehicle": "No vehicle assigned",
+    "liveTrip": "Live trip",
+    "time": "Start",
+    "route": "Route",
+    "status": "Status",
+    "currentStop": "Current stop",
+    "delay": "Delay",
+    "minutes": "{n} min",
+    "noInstances": "No trips created for today yet",
+    "noInstancesText": "The engine creates today's trips from the schedule and tracks them. When it has not run yet, the list below shows what the schedule says.",
+    "plannedBySchedule": "Planned by the schedule (not started)"
+  },
+  "routes": {
+    "title": "Routes and stops",
+    "new": "New route",
+    "edit": "Edit route",
+    "name": "Name",
+    "shortName": "Short name",
+    "color": "Colour",
+    "visibility": "Visibility",
+    "active": "Active",
+    "inactive": "Inactive",
+    "audiences": "Audiences",
+    "patterns": "Patterns",
+    "empty": "No routes yet",
+    "emptyText": "Create a route here. Recording a route with the vehicle app (stops and times from one drive) comes in a later version.",
+    "notFound": "Route not found",
+    "noPatterns": "No stops yet",
+    "noPatternsText": "Stops and times come from recording the route or from a GTFS import. Both are coming in a later version.",
+    "stop": "Stop",
+    "arrival": "Arrival",
+    "departure": "Departure",
+    "minutesOffset": "{n} min",
+    "offsetsHint": "Times are minutes after the trip starts.",
+    "servedTwice": "served twice",
+    "noLocation": "No location",
+    "map": "Route map",
+    "mapFailed": "The map could not be shown.",
+    "noShape": "No line drawn for this pattern yet."
+  },
+  "schedule": {
+    "title": "Schedule",
+    "tabs": {
+      "trips": "Trips",
+      "calendars": "Calendars",
+      "preview": "Preview"
+    },
+    "pattern": "Pattern",
+    "startTime": "Start time",
+    "calendar": "Calendar",
+    "headsign": "Destination shown",
+    "invalidTime": "Enter a time like 07:30.",
+    "noTrips": "No trips for this pattern yet.",
+    "noPatterns": "No patterns yet",
+    "noPatternsText": "Trips belong to a route pattern (its stops and times). Patterns come from recording a route.",
+    "needCalendar": "Create a calendar first: every trip runs on the days of a calendar.",
+    "trip": {
+      "new": "New trip",
+      "edit": "Edit trip",
+      "copy": "Copy with another start time",
+      "copyHint": "Same stops and minutes as the {time} trip, with a new start time.",
+      "deleteTitle": "Delete trip?",
+      "deleteText": "The {time} trip and its records for today and later are deleted."
+    },
+    "calendars": {
+      "new": "New calendar",
+      "edit": "Edit calendar",
+      "name": "Name",
+      "weekdays": "Weekdays",
+      "from": "Valid from",
+      "to": "Valid until",
+      "endBeforeStart": "Must be on or after the start date.",
+      "skipHolidays": "No service on national holidays",
+      "holidaysPending": "National holidays are applied once the holiday table is available.",
+      "noHolidays": "no national holidays",
+      "tripCount": "{n} trips",
+      "inUse": "Trips use this calendar",
+      "empty": "No calendars yet"
+    },
+    "exceptions": {
+      "title": "Exceptions",
+      "none": "No exceptions.",
+      "from": "From",
+      "to": "To (optional)",
+      "type": "Type",
+      "removed": "No service",
+      "added": "Extra service",
+      "reason": "Reason (e.g. winter break)",
+      "days": "{n} days"
+    },
+    "preview": {
+      "date": "Date",
+      "none": "No trips on {date}.",
+      "holidayNote": "National holidays are not taken into account yet."
+    }
+  },
+  "vehicles": {
+    "title": "Vehicles",
+    "new": "New vehicle",
+    "edit": "Edit vehicle",
+    "name": "Name",
+    "capacity": "Seats",
+    "traccarId": "Tracker (Traccar device ID)",
+    "traccarHint": "Set by the Buspilot team, so no one can attach another operator's tracker.",
+    "noTracker": "Not connected yet",
+    "stateLabel": "State",
+    "active": "Active",
+    "empty": "No vehicles yet",
+    "lastPosition": "Last position {date} {time}",
+    "state": {
+      "noData": "No data",
+      "onTrip": "On a trip",
+      "stale": "Position stale",
+      "idle": "Not on a trip"
+    }
+  },
+  "audiences": {
+    "title": "Audiences and invite codes",
+    "subtitle": "Who may see which routes. Only member counts are shown, never who the members are.",
+    "new": "New audience",
+    "name": "Name",
+    "nameCard": "Name",
+    "routes": "Routes",
+    "members": "Members",
+    "activeCodes": "Open codes",
+    "empty": "No audiences yet",
+    "emptyText": "An audience is a group of riders with the same access, for example \"Parents morning route A\". Riders join with an invite code.",
+    "notFound": "Audience not found",
+    "memberCount": "{n} members",
+    "routesHint": "Arrival times only, or also the map. The map needs a route visibility that allows it.",
+    "access": {
+      "none": "No access",
+      "eta": "Arrival times",
+      "map": "Map",
+      "mapNeedsVisibility": "The route shows arrival times only (visibility)."
+    },
+    "deleteTitle": "Delete audience?",
+    "deleteText": "Its invite codes stop working and its {n} members lose access. This cannot be undone."
+  },
+  "invite": {
+    "title": "Invite codes",
+    "subtitle": "Riders join this audience with a code. Codes are stored hashed and shown only once.",
+    "new": "New invite code",
+    "newHint": "The code lets riders join \"{audience}\".",
+    "label": "Label",
+    "labelHint": "For you, e.g. \"Letter to parents, April\". Shown on the sheet.",
+    "expires": "Expires",
+    "maxUses": "Maximum uses",
+    "maxUsesHint": "Empty = unlimited",
+    "create": "Create code",
+    "createFailed": "The code could not be created.",
+    "created": "Invite code created",
+    "shownOnce": "This is the only time the code is shown. Print or copy it now.",
+    "copy": "Copy code",
+    "copied": "Code copied",
+    "copyFailed": "Copying is not available. Write the code down.",
+    "print": "Print sheet",
+    "closeTitle": "Close without the code?",
+    "closeText": "The code cannot be shown again. If you lose it, revoke it and create a new one.",
+    "closeConfirm": "Close",
+    "qrLabel": "QR code to join",
+    "createdAt": "Created",
+    "uses": "Uses",
+    "status": "Status",
+    "none": "No codes yet.",
+    "revoke": "Revoke",
+    "revokeTitle": "Revoke code?",
+    "revokeText": "The code stops working at once.",
+    "revokeMemberships": "Also remove riders who joined with this code",
+    "revoked": "Code revoked",
+    "statuses": {
+      "active": "Active",
+      "revoked": "Revoked",
+      "expired": "Expired",
+      "used_up": "Used up"
+    },
+    "expiryInPast": "The expiry date is in the past."
+  },
+  "sheet": {
+    "code": "Code",
+    "expires": "Valid until {date}",
+    "title": "How to join",
+    "step1": "Open the Buspilot app (or scan the QR code with your phone camera).",
+    "step2": "Scan the QR code or enter the code {code}.",
+    "step3": "Choose your stop to get a notice before the bus arrives.",
+    "privacy": "No name, email or phone number needed. Keep this code within your group."
+  },
+  "news": {
+    "title": "News",
+    "tabs": {
+      "posts": "Posts",
+      "links": "Links and contact"
+    },
+    "new": "New post",
+    "edit": "Edit post",
+    "postTitle": "Title",
+    "body": "Text",
+    "audience": "Audience",
+    "allMembers": "All members",
+    "route": "Route",
+    "noRoute": "No specific route",
+    "publish": "Publish",
+    "draft": "Draft",
+    "publishNow": "Now",
+    "publishAt": "At a time",
+    "publishedAt": "Published",
+    "expires": "Hide after",
+    "expiryBeforePublish": "Must be after the publish time.",
+    "sendPush": "Send a notification",
+    "sendPushHint": "Members who allow notifications get one when the post is published.",
+    "suggestTranslations": "Suggest translations",
+    "translationLater": "Machine translation comes in a later version.",
+    "status": "Status",
+    "statuses": {
+      "draft": "Draft",
+      "scheduled": "Scheduled",
+      "published": "Published",
+      "expired": "Expired"
+    },
+    "empty": "No posts yet",
+    "deleteTitle": "Delete post?"
+  },
+  "links": {
+    "new": "New link",
+    "edit": "Edit link",
+    "label": "Label",
+    "url": "Address",
+    "order": "Order",
+    "urlHint": "https://…, mailto:… or tel:…",
+    "invalidUrl": "Use https://, mailto: or tel:.",
+    "empty": "No links yet"
+  },
+  "settings": {
+    "title": "Operator settings",
+    "general": "General",
+    "displayName": "Name shown to riders",
+    "languages": "Languages",
+    "languagesHint": "Texts for riders can be written in these languages.",
+    "timezone": "Time zone",
+    "invalidTimezone": "Unknown time zone (e.g. Asia/Tokyo).",
+    "defaultVisibility": "Default route visibility",
+    "branding": "Branding",
+    "color": "Colour",
+    "logoUrl": "Logo URL",
+    "logoHint": "https:// address of a square logo. Uploading comes later.",
+    "logoInvalid": "Use an https:// address.",
+    "preview": "Preview",
+    "previewHint": "How a rider card looks in the app.",
+    "sampleStop": "Next bus at Kitano-zaka"
+  }
+}
