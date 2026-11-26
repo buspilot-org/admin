@@ -46,6 +46,8 @@ const audienceForm = ref<Record<string, AudienceForm>>({})
 const savedStops = shallowRef<PlannedStop[]>([])
 const savedAudiences = shallowRef<{ audience_id: string, can_see_map: boolean }[]>([])
 const loadingPlan = ref(false)
+// The route as saved (set on open and after each successful write).
+const savedRouteId = ref<string | null>(null)
 // Shown before a save that removes or re-creates planned stops.
 const confirmLoss = ref(false)
 // A new trip whose stops or audiences could not be saved: offer to discard it.
@@ -72,6 +74,7 @@ watch(open, async (isOpen) => {
   title.value = i18nFormValue(tr?.title, op.languages.value)
   vehicleId.value = tr ? tr.vehicle_id : (props.ownVehicleIds?.length === 1 ? props.ownVehicleIds[0]! : null)
   routeId.value = tr?.route_id ?? null
+  savedRouteId.value = routeId.value
   // New trips: empty = until a while after the last stop (see save).
   visibleUntil.value = tr ? toLocalInput(tr.visible_until, tz.value) : ''
   stopRows.value = []
@@ -213,7 +216,7 @@ const removedAudiences = computed(() => {
   const chosen = new Set(Object.entries(audienceForm.value).filter(([, a]) => a.on).map(([id]) => id))
   return savedAudiences.value.filter(a => !chosen.has(a.audience_id)).length
 })
-const routeChanged = computed(() => !!props.trip && !!tripId.value && routeId.value !== props.trip.route_id)
+const routeChanged = computed(() => !!tripId.value && routeId.value !== savedRouteId.value)
 const accessLoss = computed(() => !!tripId.value && savedStops.value.length > 0 && (removedAudiences.value > 0 || routeChanged.value))
 
 async function save(confirmed = false) {
@@ -259,12 +262,14 @@ async function save(confirmed = false) {
         .insert({ ...values, id, operator_id: operatorId, service_date: serviceDate.value, kind: 'live', started_by: 'driver' })
       if (error) throw error
       tripId.value = id
+      savedRouteId.value = routeId.value
     }
     else {
       // New audiences first, so a route change keeps their riders.
       await upsertAudiences(tripId.value!)
       const { error } = await supabase.from('trip_instance').update(values).eq('id', tripId.value!)
       if (error) throw error
+      savedRouteId.value = routeId.value
     }
     const id = tripId.value!
 
