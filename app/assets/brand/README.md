@@ -11,6 +11,7 @@ same repository.
 provides the same colours as `--bp-*` custom properties for custom CSS;
 prefer Vuetify's theme colours where a component supports them.
 
-The Buspilot name, logo and brand assets are not covered by the AGPL licence
-of this repository. All rights reserved. Forks must replace them. The font
-is licensed under the SIL Open Font License 1.1 (`public/fonts/OFL.txt`).
+`colors.json` and `tokens.css` are licensed under the AGPL, like the rest of
+this repository. The Buspilot name, logo and icons in `public/` are all
+rights reserved and used as trademarks; forks must replace them. The font is
+licensed under the SIL Open Font License 1.1 (`public/fonts/OFL.txt`).

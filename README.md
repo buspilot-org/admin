@@ -87,4 +87,4 @@ Every pull request gets at least one thorough self-review before merge; see the 
 
 [GNU Affero General Public License v3.0](LICENSE)
 
-The Buspilot name, logo, icons and brand colours (`public/favicon.*`, `public/apple-touch-icon.png`, `public/icon-*.png`, `app/assets/brand/`) are not covered by this licence. All rights reserved; forks must replace them. The M PLUS Rounded 1c font in `public/fonts/` is licensed under the [SIL Open Font License 1.1](public/fonts/OFL.txt).
+The brand colour tokens in `app/assets/brand/` (`colors.json`, `tokens.css`) are covered by this licence too. "Buspilot", バスパイロット and the Arrival logo are used as trademarks of the Buspilot service; this licence grants no right to use them. The name, logo and icons (`public/favicon.*`, `public/apple-touch-icon.png`, `public/icon-*.png`) are all rights reserved; forks must replace them with their own. The M PLUS Rounded 1c font in `public/fonts/` is licensed under the [SIL Open Font License 1.1](public/fonts/OFL.txt).
