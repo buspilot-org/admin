@@ -1,5 +1,6 @@
 {
   "$comment": "Source of truth for Buspilot colours. tokens.css and buspilot_tokens.dart are generated from this file by scripts/build.py.",
+  "$license": "AGPL-3.0-only",
   "brand": {
     "tile": "#00777F",
     "iconDark": "#101C1E",
