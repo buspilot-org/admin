@@ -4,7 +4,7 @@ type Tables = Database['public']['Tables']
 export type StaffRole = Database['public']['Enums']['staff_role_kind']
 export type OperatorRow = Pick<
   Tables['operator']['Row'],
-  'id' | 'slug' | 'name' | 'timezone' | 'languages' | 'branding' | 'default_visibility'
+  'id' | 'slug' | 'name' | 'timezone' | 'languages' | 'branding' | 'default_visibility' | 'updated_at'
 >
 
 export interface OperatorMembership {
@@ -54,7 +54,7 @@ export function useOperator() {
     if (!force && loadedFor.value === userId && memberships.value) return
     const { data, error } = await supabase
       .from('staff_role')
-      .select('role, operator:operator_id (id, slug, name, timezone, languages, branding, default_visibility)')
+      .select('role, operator:operator_id (id, slug, name, timezone, languages, branding, default_visibility, updated_at)')
       .eq('user_id', userId)
     if (error) throw error
     memberships.value = (data ?? [])

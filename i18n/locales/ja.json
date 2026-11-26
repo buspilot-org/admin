@@ -397,7 +397,8 @@
       "type": "PNG・JPEG・WebP の画像を選んでください。",
       "size": "2 MB 以下の画像を選んでください。"
     },
-    "httpsOnly": "画像の URL が https ではないため保存できません（ローカルの Supabase では Storage が http です）。"
+    "httpsOnly": "画像の URL が https ではないため保存できません（ローカルの Supabase では Storage が http です）。",
+    "conflict": "ほかの画面で設定が変更されました。最新の内容を読み込みました。もう一度変更して保存してください。"
   },
   "drivers": {
     "title": "運転手",
@@ -454,6 +455,10 @@
       "date_past": "過去の日付は選べません"
     },
     "today": "今日",
-    "visibleUntilAuto": "自動（最後の停留所の 2 時間後）"
+    "visibleUntilAuto": "自動（最後の停留所の 2 時間後）",
+    "lossWarning": "停車予定 {n} 件を削除または作り直します。これらの停留所の到着通知を設定した利用者は通知を失います。",
+    "saveAnyway": "それでも保存",
+    "unfinished": "便は作成されましたが、停車予定または利用者グループを保存できませんでした。もう一度保存するか、この便を破棄してください。",
+    "discard": "この便を削除"
   }
 }

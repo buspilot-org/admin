@@ -143,7 +143,8 @@ onMounted(() => {
 })
 onBeforeUnmount(() => clearInterval(timer))
 
-const holiday = computed(() => (today.value ? holidayOn(today.value) : null))
+// The holiday table lists Japanese national holidays.
+const holiday = computed(() => (today.value && op.timezone.value === 'Asia/Tokyo' ? holidayOn(today.value) : null))
 const vehicleName = (id: string | null) => (id ? vehicles.value.find(v => v.id === id)?.name ?? '—' : t('today.noVehicle'))
 
 const viewInstances = computed(() => instances.value.map(i => ({ ...i, start_time: i.trip?.start_time ?? null })))

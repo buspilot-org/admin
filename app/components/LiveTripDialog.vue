@@ -46,6 +46,10 @@ const audienceForm = ref<Record<string, AudienceForm>>({})
 const savedStops = shallowRef<PlannedStop[]>([])
 const savedAudiences = shallowRef<{ audience_id: string, can_see_map: boolean }[]>([])
 const loadingPlan = ref(false)
+// Shown before a save that removes or re-creates planned stops.
+const confirmLoss = ref(false)
+// A new trip whose stops or audiences could not be saved: offer to discard it.
+const unfinishedTrip = ref<string | null>(null)
 const busy = ref(false)
 let nextKey = 0
 
@@ -71,6 +75,8 @@ watch(open, async (isOpen) => {
   // New trips: empty = until a while after the last stop (see save).
   visibleUntil.value = tr ? toLocalInput(tr.visible_until, tz.value) : ''
   stopRows.value = []
+  confirmLoss.value = false
+  unfinishedTrip.value = null
   audienceForm.value = emptyAudiences()
   savedStops.value = []
   savedAudiences.value = []
@@ -121,10 +127,13 @@ async function loadPlan(id: string, fillForm = true) {
 }
 
 // Choices
+// Drivers pick one of their vehicles; a trip that any vehicle may run (no
+// vehicle) can stay so when a driver edits it.
+const driverKeepsAnyVehicle = computed(() => isDriver.value && !!props.trip && props.trip.vehicle_id === null)
 const vehicleItems = computed(() => {
   const list = isDriver.value ? props.vehicles.filter(v => props.ownVehicleIds!.includes(v.id)) : props.vehicles
   return [
-    ...(isDriver.value ? [] : [{ value: null, title: t('live.noVehicle') }]),
+    ...(!isDriver.value || driverKeepsAnyVehicle.value ? [{ value: null, title: t('live.noVehicle') }] : []),
     ...list.map(v => ({ value: v.id, title: v.name })),
   ]
 })
@@ -184,7 +193,7 @@ const visibleUntilError = computed(() => {
 const valid = computed(() =>
   !!cleanI18nText(title.value)
   && !!serviceDate.value
-  && (!isDriver.value || !!vehicleId.value)
+  && (!isDriver.value || !!vehicleId.value || driverKeepsAnyVehicle.value)
   && stopRows.value.length > 0
   && stopRows.value.every(r => !!r.stopId)
   && timeErrors.value.every(e => e === null)
@@ -192,10 +201,22 @@ const valid = computed(() =>
   && (!!tripId.value || serviceDate.value >= today.value),
 )
 
-async function save() {
+// Stops that the save removes or re-creates (moved or given another stop):
+// riders who follow them lose their alerts (subscriptions cascade). Staff
+// cannot read subscriptions, so the console warns whenever this happens.
+const pendingChanges = computed(() => planStopChanges(savedStops.value, plannedRows.value))
+const lostStops = computed(() => pendingChanges.value.remove.length)
+
+async function save(confirmed = false) {
   const operatorId = op.currentId.value
   if (!valid.value || !operatorId) return
+  if (lostStops.value > 0 && !confirmed) {
+    confirmLoss.value = true
+    return
+  }
+  confirmLoss.value = false
   busy.value = true
+  const isNew = !tripId.value
   try {
     const values = {
       title: cleanI18nText(title.value)!,
@@ -203,7 +224,7 @@ async function save() {
       route_id: routeId.value,
       visible_until: visibleUntilIso.value,
     }
-    if (!tripId.value) {
+    if (isNew) {
       // The id is made here: reading the new row back in the same request
       // (INSERT … RETURNING) fails the select policy, whose
       // trip_instance_access(id) does not see the row yet (server follow-up).
@@ -215,16 +236,30 @@ async function save() {
       tripId.value = id
     }
     else {
-      const { error } = await supabase.from('trip_instance').update(values).eq('id', tripId.value)
+      const { error } = await supabase.from('trip_instance').update(values).eq('id', tripId.value!)
       if (error) throw error
     }
-    const id = tripId.value
+    const id = tripId.value!
 
-    const changes = planStopChanges(savedStops.value, plannedRows.value)
-    if (changes.remove.length > 0) {
-      const { error } = await supabase.from('trip_instance_stop').delete().eq('trip_instance_id', id).in('stop_sequence', changes.remove)
+    // The server has no single call for this (server follow-up: one RPC in
+    // one transaction). Writes that only add come first; those that take
+    // something away from riders (audiences, then planned stops with their
+    // followers) come last, so a failure on the way loses as little as
+    // possible, and saving again continues from the saved state.
+    const chosen = props.audiences ? Object.entries(audienceForm.value).filter(([, a]) => a.on) : []
+    if (props.audiences && chosen.length > 0) {
+      const { error } = await supabase.from('trip_instance_audience').upsert(
+        chosen.map(([audienceId, a]) => ({
+          operator_id: operatorId,
+          trip_instance_id: id,
+          audience_id: audienceId,
+          can_see_map: effectiveMapPermission(a.map, routeVisibility.value),
+        })),
+        { onConflict: 'trip_instance_id,audience_id' },
+      )
       if (error) throw error
     }
+    const changes = planStopChanges(savedStops.value, plannedRows.value)
     for (const u of changes.update) {
       const { error } = await supabase
         .from('trip_instance_stop')
@@ -233,45 +268,59 @@ async function save() {
         .eq('stop_sequence', u.stop_sequence)
       if (error) throw error
     }
+    // New sequences never collide with saved ones (planStopChanges), so
+    // inserting before deleting is safe.
     if (changes.insert.length > 0) {
       const { error } = await supabase
         .from('trip_instance_stop')
-        .insert(changes.insert.map(s => ({ ...s, operator_id: operatorId, trip_instance_id: id })))
+        .insert(changes.insert.map(st => ({ ...st, operator_id: operatorId, trip_instance_id: id })))
       if (error) throw error
     }
-
     if (props.audiences) {
-      const chosen = Object.entries(audienceForm.value).filter(([, a]) => a.on)
       const { remove } = diffIds(savedAudiences.value.map(a => a.audience_id), chosen.map(([audienceId]) => audienceId))
       if (remove.length > 0) {
         const { error } = await supabase.from('trip_instance_audience').delete().eq('trip_instance_id', id).in('audience_id', remove)
         if (error) throw error
       }
-      if (chosen.length > 0) {
-        const { error } = await supabase.from('trip_instance_audience').upsert(
-          chosen.map(([audienceId, a]) => ({
-            operator_id: operatorId,
-            trip_instance_id: id,
-            audience_id: audienceId,
-            can_see_map: effectiveMapPermission(a.map, routeVisibility.value),
-          })),
-          { onConflict: 'trip_instance_id,audience_id' },
-        )
-        if (error) throw error
-      }
+    }
+    if (changes.remove.length > 0) {
+      const { error } = await supabase.from('trip_instance_stop').delete().eq('trip_instance_id', id).in('stop_sequence', changes.remove)
+      if (error) throw error
     }
   }
   catch (err) {
     notify.error(err)
-    // Compare with what is saved now, so saving again continues from there.
-    if (tripId.value) await loadPlan(tripId.value, false)
+    if (tripId.value) {
+      if (isNew) unfinishedTrip.value = tripId.value
+      // Compare with what is saved now, so saving again continues from there.
+      await loadPlan(tripId.value, false)
+    }
     emit('saved')
     return
   }
   finally {
     busy.value = false
   }
+  unfinishedTrip.value = null
   notify.success(t('common.saved'))
+  open.value = false
+  emit('saved')
+}
+
+/**
+ * Discards a new trip whose stops or audiences failed: editors delete it,
+ * drivers (who may not delete trips) cancel it.
+ */
+async function discardUnfinished() {
+  const id = unfinishedTrip.value
+  if (!id) return
+  busy.value = true
+  const { error } = isDriver.value
+    ? await supabase.from('trip_instance').update({ status: 'cancelled' }).eq('id', id)
+    : await supabase.from('trip_instance').delete().eq('id', id)
+  busy.value = false
+  if (error) return notify.error(error)
+  unfinishedTrip.value = null
   open.value = false
   emit('saved')
 }
@@ -344,7 +393,7 @@ const timeErrorText = (e: StopTimeError | null | undefined) => (e ? t(`live.erro
           />
           <div class="d-flex">
             <v-btn size="small" variant="text" icon="mdi-arrow-up" :aria-label="t('live.moveUp')" :disabled="index === 0 || row.locked || stopRows[index - 1]?.locked" @click="moveRow(index, -1)" />
-            <v-btn size="small" variant="text" icon="mdi-arrow-down" :aria-label="t('live.moveDown')" :disabled="index === stopRows.length - 1 || row.locked" @click="moveRow(index, 1)" />
+            <v-btn size="small" variant="text" icon="mdi-arrow-down" :aria-label="t('live.moveDown')" :disabled="index === stopRows.length - 1 || row.locked || stopRows[index + 1]?.locked" @click="moveRow(index, 1)" />
             <v-btn size="small" variant="text" icon="mdi-close" :aria-label="t('common.delete')" :disabled="row.locked" @click="removeRow(index)" />
           </div>
           <span v-if="row.locked" class="text-caption text-medium-emphasis w-100 ml-8">{{ t('live.reached') }}</span>
@@ -387,10 +436,25 @@ const timeErrorText = (e: StopTimeError | null | undefined) => (e ? t(`live.erro
           data-testid="live-visible-until"
         />
       </v-card-text>
+      <v-alert v-if="confirmLoss" type="warning" variant="tonal" density="compact" class="mx-4" data-testid="live-confirm-loss">
+        {{ t('live.lossWarning', { n: lostStops }) }}
+        <template #append>
+          <v-btn size="small" variant="text" @click="confirmLoss = false">{{ t('common.cancel') }}</v-btn>
+          <v-btn size="small" color="warning" variant="flat" :loading="busy" data-testid="live-confirm-save" @click="save(true)">{{ t('live.saveAnyway') }}</v-btn>
+        </template>
+      </v-alert>
+      <v-alert v-if="unfinishedTrip" type="error" variant="tonal" density="compact" class="mx-4" data-testid="live-unfinished">
+        {{ t('live.unfinished') }}
+        <template #append>
+          <v-btn size="small" variant="text" color="error" :loading="busy" data-testid="live-discard" @click="discardUnfinished">
+            {{ isDriver ? t('live.cancel') : t('live.discard') }}
+          </v-btn>
+        </template>
+      </v-alert>
       <v-card-actions>
         <v-spacer />
         <v-btn variant="text" @click="open = false">{{ t('common.cancel') }}</v-btn>
-        <v-btn color="primary" variant="flat" :loading="busy" :disabled="!valid" data-testid="live-save" @click="save">{{ t('common.save') }}</v-btn>
+        <v-btn color="primary" variant="flat" :loading="busy" :disabled="!valid" data-testid="live-save" @click="save()">{{ t('common.save') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

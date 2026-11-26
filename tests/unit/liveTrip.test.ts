@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   effectiveMapPermission,
+  longestIncreasing,
   liveDelayMinutes,
   planStopChanges,
   plannedInput,
@@ -66,6 +67,26 @@ describe('planStopChanges', () => {
     expect(changes.insert.map(s => [s.stop_sequence, s.stop_id])).toEqual([[19, 'z']])
   })
 
+  it('re-creates only the moved stop when the last one moves to the front', () => {
+    const four: PlannedStop[] = [...saved, { stop_sequence: 40, stop_id: 'd', planned_arrival: null, planned_departure: null }]
+    const changes = planStopChanges(four, [asForm(four[3]!), ...saved.map(asForm)])
+    expect(changes.remove).toEqual([40])
+    expect(changes.update).toEqual([])
+    expect(changes.insert.map(s => [s.stop_sequence, s.stop_id])).toEqual([[4, 'd']])
+  })
+
+  it('re-creates only the moved stop when the first one moves to the end', () => {
+    const changes = planStopChanges(saved, [asForm(saved[1]!), asForm(saved[2]!), asForm(saved[0]!)])
+    expect(changes.remove).toEqual([10])
+    expect(changes.insert.map(s => [s.stop_sequence, s.stop_id])).toEqual([[40, 'a']])
+  })
+
+  it('keeps two of three when two stops swap places', () => {
+    const changes = planStopChanges(saved, [asForm(saved[1]!), asForm(saved[0]!), asForm(saved[2]!)])
+    expect(changes.remove).toHaveLength(1)
+    expect(changes.insert).toHaveLength(1)
+  })
+
   it('removes deleted stops and re-creates moved ones', () => {
     // c moved before a, b removed: c keeps its place, a comes after it.
     const changes = planStopChanges(saved, [asForm(saved[2]!), asForm(saved[0]!)])
@@ -97,6 +118,15 @@ describe('planStopChanges', () => {
     const all = [...kept, ...changes.insert.map(s => s.stop_sequence)].sort((a, b) => a - b)
     expect(new Set(all).size).toBe(rows.length)
     expect(changes.insert.map(s => s.stop_id)).toEqual(['p', 'q', 'r'])
+  })
+})
+
+describe('longestIncreasing', () => {
+  it('finds a longest increasing run, skipping nulls', () => {
+    expect(longestIncreasing([40, 10, 20, 30])).toEqual([1, 2, 3])
+    expect(longestIncreasing([null, 5, null, 6])).toEqual([1, 3])
+    expect(longestIncreasing([])).toEqual([])
+    expect(longestIncreasing([null])).toEqual([])
   })
 })
 
@@ -146,11 +176,15 @@ describe('planned times', () => {
     expect(plannedInstant('25:10', '2026-11-26', 'Asia/Tokyo')).toBe('2026-11-26T16:10:00.000Z')
     expect(plannedInstant('', '2026-11-26', 'Asia/Tokyo')).toBeNull()
     expect(plannedInstant('10.30', '2026-11-26', 'Asia/Tokyo')).toBeUndefined()
+    expect(plannedInstant('10:30:15', '2026-11-26', 'Asia/Tokyo')).toBe('2026-11-26T01:30:15.000Z')
+    expect(plannedInstant('10:30:75', '2026-11-26', 'Asia/Tokyo')).toBeUndefined()
   })
 
   it('writes them back the same way', () => {
     expect(plannedInput('2026-11-26T01:30:00.000Z', '2026-11-26', 'Asia/Tokyo')).toBe('10:30')
     expect(plannedInput('2026-11-26T16:10:00.000Z', '2026-11-26', 'Asia/Tokyo')).toBe('25:10')
     expect(plannedInput(null, '2026-11-26', 'Asia/Tokyo')).toBe('')
+    // Seconds survive, so an unchanged time is not rewritten.
+    expect(plannedInput('2026-11-26T01:30:15.000Z', '2026-11-26', 'Asia/Tokyo')).toBe('10:30:15')
   })
 })

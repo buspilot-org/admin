@@ -12,6 +12,7 @@ type Visibility = Database['public']['Enums']['route_visibility']
 const { t } = useI18n()
 const supabase = useSupabaseClient<Database>()
 const op = useOperator()
+const user = useSupabaseUser()
 const notify = useNotify()
 
 const LANGUAGE_CHOICES = ['ja', 'en', 'de', 'zh', 'ko', 'pt', 'es', 'vi', 'tl']
@@ -64,10 +65,14 @@ const languageItems = computed(() => LANGUAGE_CHOICES.map(l => ({ value: l, titl
 const previewUiLocale = computed(() => (['ja', 'en', 'de'] as const).find(l => l === previewLang.value) ?? 'en')
 const previewName = computed(() => pickText(name.value, previewLang.value, languages.value))
 
+// Images uploaded on this page (deleted on save unless saved).
+const uploadedHere = ref<string[]>([])
+
 async function save() {
   const o = op.operator.value
   if (!valid.value || !o) return
   busy.value = true
+  const before = readBranding(o.branding)
   // Only the documented keys (the schema rejects others); colours as RRGGBB.
   const branding: Branding = {
     logo_url: logoUrl.value,
@@ -75,6 +80,8 @@ async function save() {
     color: hex.value,
     text_color: bestTextColor(hex.value!),
   }
+  // Only if nobody saved since this page loaded the operator (another owner
+  // or tab); otherwise reload instead of overwriting their change.
   const { data, error } = await supabase
     .from('operator')
     .update({
@@ -85,18 +92,22 @@ async function save() {
       default_visibility: defaultVisibility.value,
     })
     .eq('id', o.id)
-    .select('id, slug, name, timezone, languages, branding, default_visibility')
-    .single()
-  if (error) {
+    .eq('updated_at', o.updated_at)
+    .select('id, slug, name, timezone, languages, branding, default_visibility, updated_at')
+    .maybeSingle()
+  if (error || !data) {
     busy.value = false
-    return notify.error(error)
+    if (error) return notify.error(error)
+    notify.error(t('settings.conflict'))
+    const userId = user.value?.sub
+    if (userId) await op.load(userId, true)
+    fill()
+    return
   }
-  // Files the saved branding no longer uses (replaced, removed, or uploaded
-  // and not saved): delete them (best effort; a later save tries again).
-  const storage = supabase.storage.from(BRANDING_BUCKET)
-  const listed = await storage.list(o.id, { limit: 100 })
-  const stale = staleBrandingPaths(o.id, listed.data ?? [], [branding.logo_url, branding.cover_url])
-  if (stale.length > 0) await storage.remove(stale)
+  // Delete only what this save replaced, and this page's unsaved uploads.
+  const stale = replacedBrandingPaths(o.id, [before.logo_url, before.cover_url], [branding.logo_url, branding.cover_url], uploadedHere.value)
+  if (stale.length > 0) await supabase.storage.from(BRANDING_BUCKET).remove(stale)
+  uploadedHere.value = []
   busy.value = false
   op.updateOperator(data)
   fill()
@@ -137,8 +148,8 @@ async function save() {
             </div>
             <ContrastCheck :color="color" class="mb-4" />
             <template v-if="op.currentId.value">
-              <BrandingImageUpload v-model="logoUrl" kind="logo" :operator-id="op.currentId.value" :label="t('settings.logo')" />
-              <BrandingImageUpload v-model="coverUrl" kind="cover" :operator-id="op.currentId.value" :label="t('settings.cover')" />
+              <BrandingImageUpload v-model="logoUrl" kind="logo" :operator-id="op.currentId.value" :label="t('settings.logo')" @uploaded="p => uploadedHere.push(p)" />
+              <BrandingImageUpload v-model="coverUrl" kind="cover" :operator-id="op.currentId.value" :label="t('settings.cover')" @uploaded="p => uploadedHere.push(p)" />
             </template>
             <v-alert v-if="!logoValid || !coverValid" type="warning" variant="tonal" density="compact" data-testid="branding-http">{{ t('settings.httpsOnly') }}</v-alert>
           </v-card-text>

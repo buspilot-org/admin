@@ -133,7 +133,8 @@ async function loadPreview() {
   }
 }
 watch(previewDate, loadPreview)
-const previewHoliday = computed(() => (holidays.value ? holidayOn(previewDate.value) : null))
+// The holiday table lists Japanese national holidays.
+const previewHoliday = computed(() => (holidays.value && op.timezone.value === 'Asia/Tokyo' ? holidayOn(previewDate.value) : null))
 const previewTrips = computed(() => {
   if (!previewDate.value) return []
   const byId = new Map(patterns.value.map(p => [p.id, p]))

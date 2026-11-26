@@ -5,9 +5,17 @@ import LiveTripDialog from '~/components/LiveTripDialog.vue'
 import DriverVehicleDialog from '~/components/DriverVehicleDialog.vue'
 import BrandingImageUpload from '~/components/BrandingImageUpload.vue'
 import PostDialog from '~/components/PostDialog.vue'
+import SettingsPage from '~/pages/settings.vue'
 import { fakeSupabase } from './fakeSupabase'
 
 let fake = fakeSupabase()
+const PNG_BYTES = new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0])
+const BUCKET_URL = 'https://project.supabase.co/storage/v1/object/public/operator-branding'
+
+function operatorState(languages: string[], extra: Record<string, unknown> = {}) {
+  useState<string | null>('operator-current').value = 'op1'
+  useState('operator-memberships').value = [{ role: 'owner', operator: { id: 'op1', slug: 'demo', name: { ja: 'デモ' }, timezone: 'Asia/Tokyo', languages, branding: {}, default_visibility: 'invited_eta', updated_at: '2026-11-26T00:00:00+00:00', ...extra } }]
+}
 mockNuxtImport('useSupabaseClient', () => () => fake.client)
 mockNuxtImport('useSupabaseUser', () => () => ref({ sub: 'me' }))
 
@@ -66,8 +74,7 @@ describe('LiveTripDialog', () => {
 
 describe('DriverVehicleDialog', () => {
   it('inserts new assignments and deletes removed ones', async () => {
-    useState<string | null>('operator-current').value = 'op1'
-    useState('operator-memberships').value = [{ role: 'owner', operator: { id: 'op1', slug: 'demo', name: { ja: 'デモ' }, timezone: 'Asia/Tokyo', languages: ['ja'], branding: {}, default_visibility: 'invited_eta' } }]
+    operatorState(['ja'])
     await mountSuspended(DriverVehicleDialog, {
       props: { modelValue: true, vehicle: { id: 'v1', name: 'Bus 1' }, drivers: ['me', 'd2'], assigned: ['d2'] },
     })
@@ -110,20 +117,69 @@ describe('BrandingImageUpload', () => {
     expect(fake.storageCalls).toEqual([])
   })
 
+  it('rejects a file whose content is not the claimed type', async () => {
+    const wrapper = await choose(new File(['<svg/>'], 'logo.png', { type: 'image/png' }))
+    expect(wrapper.text()).toContain('PNG, JPEG or WebP')
+    expect(fake.storageCalls).toEqual([])
+  })
+
   it('uploads to a new file under the operator and returns its public URL, without touching the saved file', async () => {
-    const wrapper = await choose(new File([new Uint8Array(10)], 'logo.webp', { type: 'image/webp' }))
+    const wrapper = await choose(new File([PNG_BYTES], 'logo.png', { type: 'image/png' }))
     expect(fake.storageCalls).toHaveLength(1)
-    expect(fake.storageCalls[0]).toMatchObject({ table: 'operator-branding', op: 'upload', args: [expect.stringMatching(/^op1\/logo-\d+\.webp$/), expect.any(File), { contentType: 'image/webp', cacheControl: '31536000' }] })
+    expect(fake.storageCalls[0]).toMatchObject({ table: 'operator-branding', op: 'upload', args: [expect.stringMatching(/^op1\/logo-\d+\.png$/), expect.any(File), { contentType: 'image/png', cacheControl: '31536000' }] })
     const url = wrapper.emitted('update:modelValue')!.at(-1)![0] as string
-    expect(url).toMatch(/^https:\/\/project\.supabase\.co\/storage\/v1\/object\/public\/operator-branding\/op1\/logo-\d+\.webp$/)
+    expect(url).toMatch(/^https:\/\/project\.supabase\.co\/storage\/v1\/object\/public\/operator-branding\/op1\/logo-\d+\.png$/)
+    expect(wrapper.emitted('uploaded')![0]![0]).toMatch(/^op1\/logo-\d+\.png$/)
+  })
+})
+
+describe('Settings: branding save', () => {
+  const saved = `${BUCKET_URL}/op1/logo-1.png`
+
+  async function saveWithNewLogo() {
+    operatorState(['ja'], { branding: { logo_url: saved, color: '1E6FD9' } })
+    const wrapper = await mountSuspended(SettingsPage)
+    await flushPromises()
+    const input = wrapper.find('[data-testid="branding-logo-file"]')
+    Object.defineProperty(input.element, 'files', { value: [new File([PNG_BYTES], 'new.png', { type: 'image/png' })], configurable: true })
+    await input.trigger('change')
+    await flushPromises()
+    const save = wrapper.findAll('button').find(b => b.text() === 'Save')!
+    await save.trigger('click')
+    await flushPromises()
+    return wrapper
+  }
+
+  it('saves only if nobody saved since loading, then deletes just the replaced logo', async () => {
+    fake = fakeSupabase(table => (table === 'operator' ? { id: 'op1', slug: 'demo', name: { ja: 'デモ' }, timezone: 'Asia/Tokyo', languages: ['ja'], branding: {}, default_visibility: 'invited_eta', updated_at: '2026-11-26T01:00:00+00:00' } : []))
+    await saveWithNewLogo()
+    const update = fake.calls.find(c => c.table === 'operator' && c.op === 'update')!
+    expect((update.args[0] as { branding: { logo_url: string } }).branding.logo_url).toMatch(/\/op1\/logo-\d+\.png$/)
+    expect(fake.calls).toContainEqual({ table: 'operator', op: 'eq', args: ['updated_at', '2026-11-26T00:00:00+00:00'] })
+    const removes = fake.storageCalls.filter(c => c.op === 'remove')
+    expect(removes).toEqual([{ table: 'operator-branding', op: 'remove', args: [['op1/logo-1.png']] }])
+    // Never a sweep of the folder.
+    expect(fake.storageCalls.some(c => c.op === 'list')).toBe(false)
+  })
+
+  it('on a conflict, deletes nothing and reloads', async () => {
+    fake = fakeSupabase(table => (table === 'operator' ? null : []))
+    await saveWithNewLogo()
+    expect(fake.storageCalls.filter(c => c.op === 'remove')).toEqual([])
+    expect(fake.calls.some(c => c.table === 'staff_role' && c.op === 'select')).toBe(true)
+    expect(useState<{ text: string }[]>('notices').value.map(n => n.text).join()).toContain('changed elsewhere')
   })
 })
 
 describe('PostDialog', () => {
   it('fills a "no bus today" post as a cancellation in the operator languages', async () => {
-    useState<string | null>('operator-current').value = 'op1'
-    useState('operator-memberships').value = [{ role: 'owner', operator: { id: 'op1', slug: 'demo', name: { ja: 'デモ' }, timezone: 'Asia/Tokyo', languages: ['ja', 'en'], branding: {}, default_visibility: 'invited_eta' } }]
+    operatorState(['ja', 'en', 'ko'])
     await mountSuspended(PostDialog, { props: { modelValue: true, post: null, audiences: [], routes: [] } })
+    await flushPromises()
+    // Text typed in a language without template text stays.
+    const ko = body().querySelector('[data-testid="i18n-ko"] input') as HTMLInputElement
+    ko.value = '오늘 버스 없음'
+    ko.dispatchEvent(new Event('input'))
     await flushPromises()
     const button = [...body().querySelectorAll('[data-testid="post-templates"] button')].find(b => b.textContent?.includes('No bus today'))!
     ;(button as HTMLButtonElement).click()
@@ -131,6 +187,7 @@ describe('PostDialog', () => {
     const values = [...body().querySelectorAll('input, textarea')].map(i => (i as HTMLInputElement).value)
     expect(values).toContain('本日の運行はありません')
     expect(values).toContain('No bus today')
+    expect(values).toContain('오늘 버스 없음')
     expect(byTestId('post-category')[0]!.textContent).toContain('Cancellation')
   })
 })

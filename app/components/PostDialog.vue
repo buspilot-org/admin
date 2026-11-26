@@ -55,8 +55,10 @@ const delayValid = computed(() => /^\d{1,3}$/.test(delayMinutes.value.trim()) &&
 function applyTemplate(template: PostTemplate) {
   const draft = postTemplate(template, op.languages.value)
   category.value = draft.category
-  title.value = { ...title.value, ...draft.title }
-  body.value = { ...body.value, ...draft.body }
+  // Only languages the template has text for; others keep what was typed.
+  const filled = (texts: I18nText) => Object.fromEntries(Object.entries(texts).filter(([, v]) => v))
+  title.value = { ...title.value, ...filled(draft.title) }
+  body.value = { ...body.value, ...filled(draft.body) }
   sendPush.value = true
 }
 function applyNoBusToday() {

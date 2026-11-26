@@ -15,6 +15,8 @@ export const E2E_DRIVER_EMAIL = 'e2e-driver@demo.buspilot.test'
 export const E2E_LOGIN_EMAIL = 'e2e-login@demo.buspilot.test'
 // A driver whose session global setup makes (live trips as a driver).
 export const E2E_LIVE_DRIVER_EMAIL = 'e2e-live-driver@demo.buspilot.test'
+// An editor, for checks of what editors may not do.
+export const E2E_EDITOR_EMAIL = 'e2e-editor@demo.buspilot.test'
 export const E2E_LABEL_PREFIX = 'e2e '
 export const VEHICLE_ID = 'd0000000-0000-4000-8000-000000000701'
 export const PUBLISHABLE_KEY = process.env.SUPABASE_KEY ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH'
@@ -149,3 +151,33 @@ export async function sessionFor(email: string): Promise<unknown> {
 
 /** Where supabase-js keeps the session in localStorage ("sb-<first host label>-auth-token"). */
 export const AUTH_STORAGE_KEY = `sb-${new URL(SUPABASE_URL).hostname.split('.')[0]}-auth-token`
+
+/** The access token of a session saved by global setup. */
+export async function tokenOf(statePath: string): Promise<string> {
+  const { readFile } = await import('node:fs/promises')
+  const state = JSON.parse(await readFile(statePath, 'utf8'))
+  const item = state.origins[0].localStorage.find((x: { name: string }) => x.name === AUTH_STORAGE_KEY)
+  return JSON.parse(item.value).access_token as string
+}
+
+/** A REST or Storage request as a signed-in user (RLS applies). */
+export async function asUser(token: string, path: string, init: RequestInit = {}) {
+  return fetch(`${SUPABASE_URL}${path}`, {
+    ...init,
+    headers: { 'apikey': PUBLISHABLE_KEY, 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...init.headers },
+  })
+}
+
+/** An anonymous rider device (user + device row), for subscriptions. */
+export async function riderDevice(): Promise<string> {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+    method: 'POST',
+    headers: { 'apikey': PUBLISHABLE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ data: {} }),
+  })
+  const session = await res.json()
+  if (!res.ok) throw new Error(`anonymous sign-in: ${res.status} ${JSON.stringify(session)}`)
+  const id = session.user.id as string
+  await api('/rest/v1/device?on_conflict=id', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates' }, body: JSON.stringify({ id }) })
+  return id
+}
