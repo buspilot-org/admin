@@ -8,13 +8,13 @@ Built with Nuxt on the Supabase backend in [buspilot-org/server](https://github.
 
 | Screen | For | What |
 |---|---|---|
-| Today | all staff | Today's trips per vehicle (status, current stop, delay), warnings (off route, stale position), and what the schedule says when the engine has not created the day's trips yet |
+| Today | all staff | Today's trips per vehicle (status, current stop, delay), warnings (off route, stale position), what the schedule says when the engine has not created the day's trips yet, national holiday; live (one-off) trips with planned stops, audiences and visibility: create, edit, cancel. Drivers see only their vehicles' trips (filtered by the server) and create live trips for their own vehicles |
 | Routes and stops | owners, editors | Routes with colour and visibility; per route the stops in pattern order (a stop served twice is listed twice) on a MapLibre map |
-| Schedule | owners, editors | Trips per pattern, "copy with another start time", calendars with weekdays, validity and exceptions as date ranges, preview "which trips run on date X" |
-| Vehicles | owners, editors | Vehicles with their current state; the Traccar device ID is read-only (set by the Buspilot team) |
-| Audiences and invite codes | owners, editors | Audiences with routes and map permission, member counts (never who), invite codes shown once with QR code and a printable ja/en/de sheet, revoke |
-| News | owners, editors | Posts in the operator's languages for an audience or route, publish and expiry times; links and contact information |
-| Operator settings | owners | Display name per language, languages, time zone, default visibility, brand colour with contrast check, logo |
+| Schedule | owners, editors | Trips per pattern, "copy with another start time", calendars with weekdays, validity, exceptions as date ranges and the national holidays they skip or serve, preview "which trips run on date X" (asked from the server, `service_days()`) |
+| Vehicles | owners, editors | Vehicles with their current state and drivers (`driver_vehicle`); the Traccar device ID is read-only (set by the Buspilot team) |
+| Audiences and invite codes | owners, editors | Audiences with routes and map permission, member counts (never who), invite codes shown once with QR code and a printable ja/en/de sheet, revoke (optionally with the memberships made with the code, in one transaction) |
+| News | owners, editors | Posts in the operator's languages for an audience or route, with a category (cancellation, delay, general, event; riders mute push per category) and templates ("no bus today", "delayed by about … minutes"), publish and expiry times; links and contact information |
+| Operator settings | owners | Display name per language, languages, time zone, default visibility, brand colour with contrast check, logo and cover image uploaded to Storage (`operator-branding` bucket) |
 
 Every request runs with the signed-in staff member's own Supabase session, so the database's row-level security decides what they can read and change. The navigation only mirrors those rules.
 
@@ -39,13 +39,7 @@ insert into public.staff_role (operator_id, user_id, role)
 values ('d0000000-0000-4000-8000-000000000001', '<auth user id>', 'owner');
 ```
 
-Emails go to Mailpit (<http://127.0.0.1:55324>). The local email template sends a sign-in link without the 6-digit code (a server change is pending), so get a code for the console with the local secret key instead:
-
-```bash
-SUPABASE_SECRET_KEY=$(cd ../server && npx supabase status -o json | jq -r .SECRET_KEY) node scripts/dev-otp.mjs you@example.test
-```
-
-The script refuses to run against anything but a local Supabase.
+Emails go to Mailpit (<http://127.0.0.1:55324>): the sign-in email carries the 6-digit code (server template `supabase/templates/magic_link.html`). If it only has a link, the local stack was started with an older server checkout; restart it from an up-to-date clone (`npx supabase stop && npx supabase start` in `../server`).
 
 ### Scripts
 

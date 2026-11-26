@@ -130,7 +130,8 @@
     "minutes": "{n} min",
     "noInstances": "No trips created for today yet",
     "noInstancesText": "The engine creates today's trips from the schedule and tracks them. When it has not run yet, the list below shows what the schedule says.",
-    "plannedBySchedule": "Planned by the schedule (not started)"
+    "plannedBySchedule": "Planned by the schedule (not started)",
+    "holiday": "Today is a national holiday: {name}"
   },
   "routes": {
     "title": "Routes and stops",
@@ -193,11 +194,15 @@
       "to": "Valid until",
       "endBeforeStart": "Must be on or after the start date.",
       "skipHolidays": "No service on national holidays",
-      "holidaysPending": "National holidays are applied once the holiday table is available.",
       "noHolidays": "no national holidays",
       "tripCount": "{n} trips",
       "inUse": "Trips use this calendar",
-      "empty": "No calendars yet"
+      "empty": "No calendars yet",
+      "runsOnHolidays": "runs on national holidays",
+      "holidaysSkipped": "No service on these national holidays ({n})",
+      "holidaysServed": "Service on these national holidays ({n})",
+      "holidayExceptionHint": "To run on one of them anyway, add that date as an \"added\" exception.",
+      "noHolidaysInRange": "No national holidays fall on these weekdays in this period."
     },
     "exceptions": {
       "title": "Exceptions",
@@ -213,7 +218,7 @@
     "preview": {
       "date": "Date",
       "none": "No trips on {date}.",
-      "holidayNote": "National holidays are not taken into account yet."
+      "holiday": "National holiday: {name}"
     }
   },
   "vehicles": {
@@ -296,7 +301,8 @@
       "expired": "Expired",
       "used_up": "Used up"
     },
-    "expiryInPast": "The expiry date is in the past."
+    "expiryInPast": "The expiry date is in the past.",
+    "revokedWithMemberships": "Code revoked; {n} riders removed"
   },
   "sheet": {
     "code": "Code",
@@ -340,7 +346,22 @@
       "expired": "Expired"
     },
     "empty": "No posts yet",
-    "deleteTitle": "Delete post?"
+    "deleteTitle": "Delete post?",
+    "category": "Category",
+    "categories": {
+      "cancellation": "Cancellation",
+      "delay": "Delay",
+      "general": "General",
+      "event": "Event"
+    },
+    "filterByCategory": "Filter by category",
+    "noMatch": "No posts in these categories",
+    "templates": {
+      "title": "Templates (fill in the text in the riders' languages)",
+      "noBusToday": "No bus today",
+      "minutes": "Minutes",
+      "delay": "Delayed by about … minutes"
+    }
   },
   "links": {
     "new": "New link",
@@ -363,11 +384,72 @@
     "defaultVisibility": "Default route visibility",
     "branding": "Branding",
     "color": "Colour",
-    "logoUrl": "Logo URL",
-    "logoHint": "https:// address of a square logo. Uploading comes later.",
-    "logoInvalid": "Use an https:// address.",
+    "logoHint": "A square image. PNG, JPEG or WebP, up to 2 MB.",
     "preview": "Preview",
     "previewHint": "How a rider card looks in the app.",
-    "sampleStop": "Next bus at Kitano-zaka"
+    "sampleStop": "Next bus at Kitano-zaka",
+    "logo": "Logo",
+    "cover": "Cover image",
+    "coverHint": "A wide image (e.g. 1200×400). PNG, JPEG or WebP, up to 2 MB.",
+    "upload": "Upload",
+    "removeImage": "Remove",
+    "imageErrors": {
+      "type": "Choose a PNG, JPEG or WebP image.",
+      "size": "Choose an image of at most 2 MB."
+    },
+    "httpsOnly": "The image address is not https, so it cannot be saved (a local Supabase serves Storage over http)."
+  },
+  "drivers": {
+    "title": "Drivers",
+    "you": "You",
+    "driver": "Driver",
+    "assign": "Assign drivers",
+    "anyDriver": "None assigned",
+    "dialogTitle": "Drivers of {vehicle}",
+    "dialogText": "Drivers see only the trips of their vehicles (and trips without a vehicle) on Today.",
+    "none": "No staff member has the driver role at this operator."
+  },
+  "live": {
+    "title": "Live trips",
+    "new": "New live trip",
+    "edit": "Edit live trip",
+    "tripTitle": "Name",
+    "tripTitleHint": "Shown to riders (e.g. School trip to Kiyomizu-dera)",
+    "date": "Service date",
+    "vehicle": "Vehicle",
+    "noVehicle": "Any vehicle",
+    "ownVehicleHint": "Only the vehicles you drive",
+    "route": "Route (optional)",
+    "noRoute": "No route",
+    "routeHint": "With a route, the route's audiences see the trip too",
+    "stops": "Planned stops",
+    "stopsHint": "Pick existing stops in order, with arrival and departure times (e.g. 10:30; 25:10 after midnight).",
+    "stop": "Stop",
+    "arrival": "Arrival",
+    "departure": "Departure",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "addStop": "Add stop",
+    "reached": "The bus has reached this stop; it cannot be changed",
+    "newStopsLater": "Adding new stops on the map comes in a later version.",
+    "audiences": "Audiences that see the trip",
+    "audiencesHint": "Members of the chosen audiences see this trip.",
+    "audiencesWithRoute": "The route's audiences see it, and the audiences chosen here too.",
+    "mapCapped": "This route shows arrival times only, so no audience gets the map here (capped at arrival times).",
+    "canSeeMap": "Map too",
+    "noAudiences": "No audiences yet.",
+    "driverAudiences": "Drivers cannot choose audiences. With a route, the route's riders see the trip; ask an editor to add audiences.",
+    "visibleUntil": "Visible until",
+    "visibleUntilHint": "Riders no longer see the trip after this time.",
+    "times": "Times",
+    "cancel": "Cancel trip",
+    "cancelTitle": "Cancel this live trip?",
+    "cancelText": "\"{title}\" will be cancelled.",
+    "cancelled": "Trip cancelled",
+    "errors": {
+      "departure_before_arrival": "Departure must not be before arrival",
+      "before_previous_stop": "Earlier than the previous stop",
+      "invalid_time": "Use HH:MM"
+    }
   }
 }

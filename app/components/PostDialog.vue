@@ -28,6 +28,8 @@ const publish = ref<'draft' | 'now' | 'at'>('draft')
 const publishAt = ref('')
 const expiresAt = ref('')
 const sendPush = ref(false)
+const category = ref<PostCategory>('general')
+const delayMinutes = ref('10')
 const busy = ref(false)
 
 watch(open, (isOpen) => {
@@ -42,7 +44,31 @@ watch(open, (isOpen) => {
   publishAt.value = toLocalInput(p?.published_at ?? null, tz)
   expiresAt.value = toLocalInput(p?.expires_at ?? null, tz)
   sendPush.value = p?.send_push ?? false
+  category.value = p?.category ?? 'general'
 }, { immediate: true })
+
+const categoryItems = computed(() => POST_CATEGORIES.map(c => ({ value: c, title: t(`news.categories.${c}`), props: { prependIcon: POST_CATEGORY_ICON[c] } })))
+
+// Templates fill category, title and body in the operator's languages, and
+// suggest a notification; the rest of the form stays as it is.
+const delayValid = computed(() => /^\d{1,3}$/.test(delayMinutes.value.trim()) && Number(delayMinutes.value) > 0)
+function applyTemplate(template: PostTemplate) {
+  const draft = postTemplate(template, op.languages.value)
+  category.value = draft.category
+  title.value = { ...title.value, ...draft.title }
+  body.value = { ...body.value, ...draft.body }
+  sendPush.value = true
+}
+function applyNoBusToday() {
+  const today = dateInTimeZone(new Date(), op.timezone.value)
+  applyTemplate({ kind: 'no_bus_today', date: today })
+  // Hide the post after the day.
+  if (!expiresAt.value) expiresAt.value = `${addDays(today, 1)}T00:00`
+}
+function applyDelay() {
+  if (!delayValid.value) return
+  applyTemplate({ kind: 'delay', minutes: Number(delayMinutes.value) })
+}
 
 const audienceItems = computed(() => [
   { value: null, title: t('news.allMembers') },
@@ -80,6 +106,7 @@ async function save() {
     published_at: publishedIso.value,
     expires_at: expiresIso.value,
     send_push: sendPush.value,
+    category: category.value,
   }
   const { error } = props.post
     ? await supabase.from('post').update(values).eq('id', props.post.id)
@@ -96,6 +123,23 @@ async function save() {
   <v-dialog v-model="open" max-width="720" scrollable>
     <v-card :title="post ? t('news.edit') : t('news.new')">
       <v-card-text>
+        <div v-if="!post" class="mb-4" data-testid="post-templates">
+          <div class="text-body-2 mb-2">{{ t('news.templates.title') }}</div>
+          <div class="d-flex flex-wrap align-center ga-2">
+            <v-btn size="small" variant="tonal" prepend-icon="mdi-bus-alert" @click="applyNoBusToday">{{ t('news.templates.noBusToday') }}</v-btn>
+            <v-text-field
+              v-model="delayMinutes"
+              type="number"
+              min="1"
+              :label="t('news.templates.minutes')"
+              hide-details
+              style="max-width: 110px"
+              data-testid="delay-minutes"
+            />
+            <v-btn size="small" variant="tonal" prepend-icon="mdi-clock-alert-outline" :disabled="!delayValid" @click="applyDelay">{{ t('news.templates.delay') }}</v-btn>
+          </div>
+        </div>
+        <v-select v-model="category" :items="categoryItems" :label="t('news.category')" data-testid="post-category" />
         <I18nTextField v-model="title" :languages="op.languages.value" :label="t('news.postTitle')" required />
         <I18nTextField v-model="body" :languages="op.languages.value" :label="t('news.body')" textarea required />
         <div class="d-flex align-center ga-2 mb-4">

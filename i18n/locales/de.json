@@ -130,7 +130,8 @@
     "minutes": "{n} Min.",
     "noInstances": "Für heute sind noch keine Fahrten angelegt",
     "noInstancesText": "Die Engine legt die Fahrten des Tages aus dem Fahrplan an und verfolgt sie. Solange sie noch nicht gelaufen ist, zeigt die Liste unten den Fahrplan.",
-    "plannedBySchedule": "Laut Fahrplan geplant (nicht gestartet)"
+    "plannedBySchedule": "Laut Fahrplan geplant (nicht gestartet)",
+    "holiday": "Heute ist ein Feiertag: {name}"
   },
   "routes": {
     "title": "Linien und Haltestellen",
@@ -193,11 +194,15 @@
       "to": "Gültig bis",
       "endBeforeStart": "Muss am oder nach dem Startdatum liegen.",
       "skipHolidays": "Kein Betrieb an Feiertagen",
-      "holidaysPending": "Feiertage werden berücksichtigt, sobald die Feiertagstabelle verfügbar ist.",
       "noHolidays": "nicht an Feiertagen",
       "tripCount": "{n} Fahrten",
       "inUse": "Fahrten nutzen diesen Kalender",
-      "empty": "Noch keine Kalender"
+      "empty": "Noch keine Kalender",
+      "runsOnHolidays": "fährt auch an Feiertagen",
+      "holidaysSkipped": "Kein Betrieb an diesen Feiertagen ({n})",
+      "holidaysServed": "Betrieb an diesen Feiertagen ({n})",
+      "holidayExceptionHint": "Um an einem davon doch zu fahren, den Tag als Ausnahme „zusätzlich“ eintragen.",
+      "noHolidaysInRange": "In diesem Zeitraum fällt kein Feiertag auf diese Wochentage."
     },
     "exceptions": {
       "title": "Ausnahmen",
@@ -213,7 +218,7 @@
     "preview": {
       "date": "Datum",
       "none": "Keine Fahrten am {date}.",
-      "holidayNote": "Feiertage werden noch nicht berücksichtigt."
+      "holiday": "Feiertag: {name}"
     }
   },
   "vehicles": {
@@ -296,7 +301,8 @@
       "expired": "Abgelaufen",
       "used_up": "Aufgebraucht"
     },
-    "expiryInPast": "Das Ablaufdatum liegt in der Vergangenheit."
+    "expiryInPast": "Das Ablaufdatum liegt in der Vergangenheit.",
+    "revokedWithMemberships": "Code widerrufen; {n} Fahrgäste entfernt"
   },
   "sheet": {
     "code": "Code",
@@ -340,7 +346,22 @@
       "expired": "Abgelaufen"
     },
     "empty": "Noch keine Beiträge",
-    "deleteTitle": "Beitrag löschen?"
+    "deleteTitle": "Beitrag löschen?",
+    "category": "Kategorie",
+    "categories": {
+      "cancellation": "Ausfall",
+      "delay": "Verspätung",
+      "general": "Allgemein",
+      "event": "Veranstaltung"
+    },
+    "filterByCategory": "Nach Kategorie filtern",
+    "noMatch": "Keine Beiträge in diesen Kategorien",
+    "templates": {
+      "title": "Vorlagen (füllen den Text in den Sprachen der Fahrgäste aus)",
+      "noBusToday": "Heute kein Bus",
+      "minutes": "Minuten",
+      "delay": "Etwa … Minuten Verspätung"
+    }
   },
   "links": {
     "new": "Neuer Link",
@@ -363,11 +384,72 @@
     "defaultVisibility": "Standard-Sichtbarkeit von Linien",
     "branding": "Erscheinungsbild",
     "color": "Farbe",
-    "logoUrl": "Logo-URL",
-    "logoHint": "https://-Adresse eines quadratischen Logos. Hochladen kommt später.",
-    "logoInvalid": "Bitte eine https://-Adresse angeben.",
+    "logoHint": "Ein quadratisches Bild. PNG, JPEG oder WebP, bis 2 MB.",
     "preview": "Vorschau",
     "previewHint": "So sieht eine Karte in der Fahrgast-App aus.",
-    "sampleStop": "Nächster Bus an Kitano-zaka"
+    "sampleStop": "Nächster Bus an Kitano-zaka",
+    "logo": "Logo",
+    "cover": "Titelbild",
+    "coverHint": "Ein breites Bild (z. B. 1200×400). PNG, JPEG oder WebP, bis 2 MB.",
+    "upload": "Hochladen",
+    "removeImage": "Entfernen",
+    "imageErrors": {
+      "type": "Bitte ein PNG-, JPEG- oder WebP-Bild wählen.",
+      "size": "Bitte ein Bild bis 2 MB wählen."
+    },
+    "httpsOnly": "Die Bildadresse ist kein https und lässt sich nicht speichern (ein lokales Supabase liefert Storage über http)."
+  },
+  "drivers": {
+    "title": "Fahrer",
+    "you": "Sie",
+    "driver": "Fahrer",
+    "assign": "Fahrer zuordnen",
+    "anyDriver": "Niemand zugeordnet",
+    "dialogTitle": "Fahrer von {vehicle}",
+    "dialogText": "Fahrer sehen unter „Heute“ nur die Fahrten ihrer Fahrzeuge (und Fahrten ohne Fahrzeug).",
+    "none": "Bei diesem Betreiber hat niemand die Rolle Fahrer."
+  },
+  "live": {
+    "title": "Sonderfahrten",
+    "new": "Neue Sonderfahrt",
+    "edit": "Sonderfahrt bearbeiten",
+    "tripTitle": "Name",
+    "tripTitleHint": "Für Fahrgäste sichtbar (z. B. Ausflug zum Kiyomizu-dera)",
+    "date": "Betriebstag",
+    "vehicle": "Fahrzeug",
+    "noVehicle": "Beliebiges Fahrzeug",
+    "ownVehicleHint": "Nur Fahrzeuge, die Sie fahren",
+    "route": "Linie (optional)",
+    "noRoute": "Keine Linie",
+    "routeHint": "Mit Linie sehen auch deren Zielgruppen die Fahrt",
+    "stops": "Geplante Halte",
+    "stopsHint": "Vorhandene Haltestellen der Reihe nach wählen, mit Ankunft und Abfahrt (z. B. 10:30; 25:10 nach Mitternacht).",
+    "stop": "Haltestelle",
+    "arrival": "Ankunft",
+    "departure": "Abfahrt",
+    "moveUp": "Nach oben",
+    "moveDown": "Nach unten",
+    "addStop": "Halt hinzufügen",
+    "reached": "Der Bus war schon an diesem Halt; er lässt sich nicht mehr ändern",
+    "newStopsLater": "Neue Haltestellen auf der Karte anlegen kommt in einer späteren Version.",
+    "audiences": "Zielgruppen, die die Fahrt sehen",
+    "audiencesHint": "Mitglieder der gewählten Zielgruppen sehen diese Fahrt.",
+    "audiencesWithRoute": "Die Zielgruppen der Linie sehen sie, und zusätzlich die hier gewählten.",
+    "mapCapped": "Diese Linie zeigt nur Ankunftszeiten, hier bekommt keine Zielgruppe die Karte (auf Ankunftszeiten begrenzt).",
+    "canSeeMap": "Auch Karte",
+    "noAudiences": "Noch keine Zielgruppen.",
+    "driverAudiences": "Fahrer können keine Zielgruppen wählen. Mit Linie sehen die Fahrgäste der Linie die Fahrt; Zielgruppen trägt eine Redakteurin oder ein Redakteur ein.",
+    "visibleUntil": "Sichtbar bis",
+    "visibleUntilHint": "Danach sehen Fahrgäste die Fahrt nicht mehr.",
+    "times": "Zeiten",
+    "cancel": "Fahrt absagen",
+    "cancelTitle": "Sonderfahrt absagen?",
+    "cancelText": "„{title}“ wird abgesagt.",
+    "cancelled": "Fahrt abgesagt",
+    "errors": {
+      "departure_before_arrival": "Abfahrt darf nicht vor der Ankunft liegen",
+      "before_previous_stop": "Früher als der vorige Halt",
+      "invalid_time": "Format HH:MM"
+    }
   }
 }

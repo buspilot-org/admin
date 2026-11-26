@@ -94,17 +94,19 @@ const alsoMemberships = ref(false)
 async function revoke() {
   if (!revoking.value) return
   busy.value = true
-  const now = new Date().toISOString()
-  const { error: err } = await supabase.from('invite_code').update({ revoked_at: now }).eq('id', revoking.value.id)
-  let err2 = null
-  if (!err && alsoMemberships.value) {
-    ;({ error: err2 } = await supabase.from('membership').update({ revoked_at: now }).eq('invite_code_id', revoking.value.id).is('revoked_at', null))
+  let revokedMemberships: number
+  try {
+    revokedMemberships = await revokeInviteCode(supabase, revoking.value.id, alsoMemberships.value)
+  }
+  catch (err) {
+    busy.value = false
+    return notify.error(err)
   }
   busy.value = false
-  if (err || err2) return notify.error(err ?? err2)
+  const withMemberships = alsoMemberships.value
   revoking.value = null
   alsoMemberships.value = false
-  notify.success(t('invite.revoked'))
+  notify.success(withMemberships ? t('invite.revokedWithMemberships', { n: revokedMemberships }) : t('invite.revoked'))
   await reload()
 }
 

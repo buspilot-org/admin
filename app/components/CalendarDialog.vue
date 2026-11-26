@@ -2,8 +2,9 @@
 // Create or edit a service calendar: weekdays, validity, national holidays.
 import type { Database } from '~/types/database.types'
 import type { CalendarRow } from '~/composables/useScheduleData'
+import type { NationalHoliday } from '~/composables/useNationalHolidays'
 
-const props = defineProps<{ calendar: CalendarRow | null }>()
+const props = defineProps<{ calendar: CalendarRow | null, holidays: readonly NationalHoliday[] }>()
 const open = defineModel<boolean>({ required: true })
 const emit = defineEmits<{ saved: [] }>()
 
@@ -11,6 +12,7 @@ const { t } = useI18n()
 const supabase = useSupabaseClient<Database>()
 const op = useOperator()
 const notify = useNotify()
+const text = useText()
 
 const name = ref('')
 const weekdays = ref<number[]>([0, 1, 2, 3, 4])
@@ -28,6 +30,17 @@ watch(open, (isOpen) => {
   endDate.value = c?.end_date ?? ''
   skipHolidays.value = c?.skip_national_holidays ?? true
 }, { immediate: true })
+
+// National holidays on the chosen weekdays in the validity range (exceptions
+// of the saved calendar decide their own dates).
+const affectedHolidays = computed(() => {
+  if (!startDate.value || !endDate.value || endDate.value < startDate.value) return []
+  return holidaysInService(
+    { weekdays: indexesToWeekdays(weekdays.value), start_date: startDate.value, end_date: endDate.value },
+    props.calendar?.calendar_exception ?? [],
+    props.holidays,
+  )
+})
 
 const valid = computed(() => !!name.value.trim() && !!startDate.value && !!endDate.value && endDate.value >= startDate.value)
 
@@ -65,7 +78,18 @@ async function save() {
           <v-text-field v-model="startDate" type="date" :label="t('schedule.calendars.from')" />
           <v-text-field v-model="endDate" type="date" :label="t('schedule.calendars.to')" :error-messages="endDate && startDate && endDate < startDate ? [t('schedule.calendars.endBeforeStart')] : []" />
         </div>
-        <v-switch v-model="skipHolidays" color="primary" :label="t('schedule.calendars.skipHolidays')" :hint="t('schedule.calendars.holidaysPending')" persistent-hint />
+        <v-switch v-model="skipHolidays" color="primary" :label="t('schedule.calendars.skipHolidays')" hide-details />
+        <div v-if="affectedHolidays.length > 0" class="mt-2" data-testid="dialog-holidays">
+          <div class="text-body-2 mb-1">
+            {{ skipHolidays ? t('schedule.calendars.holidaysSkipped', { n: affectedHolidays.length }) : t('schedule.calendars.holidaysServed', { n: affectedHolidays.length }) }}
+          </div>
+          <div class="d-flex flex-wrap ga-1">
+            <v-chip v-for="h in affectedHolidays" :key="h.date" size="small" variant="tonal" :color="skipHolidays ? 'error' : 'success'" class="tabular">
+              {{ h.date }} {{ text(h.name) }}
+            </v-chip>
+          </div>
+        </div>
+        <div v-else-if="startDate && endDate" class="text-caption text-medium-emphasis mt-2">{{ t('schedule.calendars.noHolidaysInRange') }}</div>
       </v-card-text>
       <v-card-actions>
         <v-spacer />

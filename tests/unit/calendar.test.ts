@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, daysInRange, indexesToWeekdays, runsOn, weekdayIndex, weekdaysToIndexes } from '../../app/utils/calendar'
+import { addDays, daysInRange, holidaysInService, indexesToWeekdays, runsOn, weekdayIndex, weekdaysToIndexes } from '../../app/utils/calendar'
 
 // The seed calendar: Monday–Friday, school year 2026/27, winter break removed.
 const schoolDays = { weekdays: 31, start_date: '2026-04-01', end_date: '2027-03-31', skip_national_holidays: true }
@@ -37,15 +37,42 @@ describe('runsOn', () => {
     expect(runsOn(schoolDays, [saturdayEvent], '2026-11-28')).toBe(true)
   })
 
-  it('lets removed win when both kinds cover a date', () => {
+  it('lets added win when both kinds cover a date (as the server does)', () => {
     const added = { start_date: '2026-12-25', end_date: '2026-12-25', type: 'added' as const }
-    expect(runsOn(schoolDays, [added, winterBreak], '2026-12-25')).toBe(false)
+    expect(runsOn(schoolDays, [added, winterBreak], '2026-12-25')).toBe(true)
+  })
+
+  it('runs on a holiday with an added exception', () => {
+    const holidays = new Set(['2026-11-23'])
+    const added = { start_date: '2026-11-23', end_date: '2026-11-23', type: 'added' as const }
+    expect(runsOn(schoolDays, [added], '2026-11-23', holidays)).toBe(true)
   })
 
   it('skips national holidays when given and asked to', () => {
     const holidays = new Set(['2026-11-23']) // Labour Thanksgiving Day
     expect(runsOn(schoolDays, [], '2026-11-23', holidays)).toBe(false)
     expect(runsOn({ ...schoolDays, skip_national_holidays: false }, [], '2026-11-23', holidays)).toBe(true)
+  })
+})
+
+describe('holidaysInService', () => {
+  const holidays = [
+    { date: '2026-11-03', name: { ja: '文化の日' } }, // Tuesday
+    { date: '2026-11-23', name: { ja: '勤労感謝の日' } }, // Monday
+    { date: '2027-01-01', name: { ja: '元日' } }, // Friday, in the winter break
+    { date: '2027-04-29', name: { ja: '昭和の日' } }, // after the validity range
+  ]
+
+  it('lists holidays on service weekdays within the validity range', () => {
+    expect(holidaysInService(schoolDays, [], holidays).map(h => h.date)).toEqual(['2026-11-03', '2026-11-23', '2027-01-01'])
+  })
+
+  it('leaves out holidays decided by an exception', () => {
+    expect(holidaysInService(schoolDays, [winterBreak], holidays).map(h => h.date)).toEqual(['2026-11-03', '2026-11-23'])
+  })
+
+  it('leaves out holidays on weekdays without service', () => {
+    expect(holidaysInService({ ...schoolDays, weekdays: indexesToWeekdays([1]) }, [], holidays).map(h => h.date)).toEqual(['2026-11-03'])
   })
 })
 

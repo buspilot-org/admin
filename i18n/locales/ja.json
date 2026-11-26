@@ -130,7 +130,8 @@
     "minutes": "{n}分",
     "noInstances": "今日の便はまだ作成されていません",
     "noInstancesText": "運行エンジンが時刻表から今日の便を作成し、追跡します。まだ動いていない場合は、時刻表上の予定を下に表示します。",
-    "plannedBySchedule": "時刻表上の予定（未開始）"
+    "plannedBySchedule": "時刻表上の予定（未開始）",
+    "holiday": "今日は祝日です：{name}"
   },
   "routes": {
     "title": "路線と停留所",
@@ -193,11 +194,15 @@
       "to": "終了日",
       "endBeforeStart": "開始日以降の日付にしてください。",
       "skipHolidays": "祝日は運休",
-      "holidaysPending": "祝日は祝日テーブルが用意され次第反映されます。",
       "noHolidays": "祝日運休",
       "tripCount": "{n}便",
       "inUse": "このカレンダーを使う便があります",
-      "empty": "運行カレンダーはまだありません"
+      "empty": "運行カレンダーはまだありません",
+      "runsOnHolidays": "祝日も運行",
+      "holidaysSkipped": "運休になる祝日（{n} 日）",
+      "holidaysServed": "運行する祝日（{n} 日）",
+      "holidayExceptionHint": "特定の祝日だけ運行するには、その日を「追加運行」の例外にします。",
+      "noHolidaysInRange": "この期間の運行曜日に祝日はありません。"
     },
     "exceptions": {
       "title": "例外",
@@ -213,7 +218,7 @@
     "preview": {
       "date": "日付",
       "none": "{date} に運行する便はありません。",
-      "holidayNote": "祝日はまだ考慮されていません。"
+      "holiday": "この日は祝日です：{name}"
     }
   },
   "vehicles": {
@@ -296,7 +301,8 @@
       "expired": "期限切れ",
       "used_up": "上限到達"
     },
-    "expiryInPast": "有効期限が過去の日付です。"
+    "expiryInPast": "有効期限が過去の日付です。",
+    "revokedWithMemberships": "コードを無効にし、利用者 {n} 人を外しました"
   },
   "sheet": {
     "code": "コード",
@@ -340,7 +346,22 @@
       "expired": "期限切れ"
     },
     "empty": "投稿はまだありません",
-    "deleteTitle": "投稿を削除しますか？"
+    "deleteTitle": "投稿を削除しますか？",
+    "category": "種類",
+    "categories": {
+      "cancellation": "運休",
+      "delay": "遅れ",
+      "general": "お知らせ",
+      "event": "イベント"
+    },
+    "filterByCategory": "種類で絞り込む",
+    "noMatch": "この種類のお知らせはありません",
+    "templates": {
+      "title": "テンプレート（利用者の言語で本文を入れます）",
+      "noBusToday": "本日運休",
+      "minutes": "分",
+      "delay": "約…分の遅れ"
+    }
   },
   "links": {
     "new": "新しいリンク",
@@ -363,11 +384,72 @@
     "defaultVisibility": "路線の既定の公開範囲",
     "branding": "ブランド",
     "color": "色",
-    "logoUrl": "ロゴの URL",
-    "logoHint": "正方形ロゴの https:// アドレス。アップロードは今後対応します。",
-    "logoInvalid": "https:// のアドレスを入力してください。",
+    "logoHint": "正方形の画像。PNG・JPEG・WebP、2 MB まで。",
     "preview": "プレビュー",
     "previewHint": "アプリでの利用者カードの見え方。",
-    "sampleStop": "北野坂 次のバス"
+    "sampleStop": "北野坂 次のバス",
+    "logo": "ロゴ",
+    "cover": "カバー画像",
+    "coverHint": "横長の画像（例 1200×400）。PNG・JPEG・WebP、2 MB まで。",
+    "upload": "アップロード",
+    "removeImage": "削除",
+    "imageErrors": {
+      "type": "PNG・JPEG・WebP の画像を選んでください。",
+      "size": "2 MB 以下の画像を選んでください。"
+    },
+    "httpsOnly": "画像の URL が https ではないため保存できません（ローカルの Supabase では Storage が http です）。"
+  },
+  "drivers": {
+    "title": "運転手",
+    "you": "あなた",
+    "driver": "運転手",
+    "assign": "運転手を割り当てる",
+    "anyDriver": "未割り当て",
+    "dialogTitle": "{vehicle} の運転手",
+    "dialogText": "運転手は、割り当てられた車両の便（と車両未定の便）だけを「今日」で見られます。",
+    "none": "この事業者に運転手の役割を持つスタッフはいません。"
+  },
+  "live": {
+    "title": "臨時便（ライブ便）",
+    "new": "臨時便を作成",
+    "edit": "臨時便を編集",
+    "tripTitle": "便の名前",
+    "tripTitleHint": "利用者に表示されます（例：遠足・清水寺）",
+    "date": "運行日",
+    "vehicle": "車両",
+    "noVehicle": "車両未定",
+    "ownVehicleHint": "あなたが運転する車両だけ選べます",
+    "route": "路線（任意）",
+    "noRoute": "路線なし",
+    "routeHint": "路線を選ぶと、その路線の利用者グループにも表示されます",
+    "stops": "停車予定",
+    "stopsHint": "既存の停留所を順番に選び、到着・出発時刻を入れます（例 10:30、深夜は 25:10）。",
+    "stop": "停留所",
+    "arrival": "到着",
+    "departure": "出発",
+    "moveUp": "上へ",
+    "moveDown": "下へ",
+    "addStop": "停留所を追加",
+    "reached": "バスはこの停留所に到着済みのため変更できません",
+    "newStopsLater": "新しい停留所を地図で追加する機能は今後追加します。",
+    "audiences": "表示する利用者グループ",
+    "audiencesHint": "選んだグループのメンバーにこの便が表示されます。",
+    "audiencesWithRoute": "路線の利用者グループに加えて、選んだグループにも表示されます。",
+    "mapCapped": "この路線は「到着時刻のみ」のため、地図は表示されません（到着時刻のみに制限）。",
+    "canSeeMap": "地図も表示",
+    "noAudiences": "利用者グループがありません。",
+    "driverAudiences": "運転手は利用者グループを選べません。路線を選ぶと、その路線の利用者に表示されます。グループの追加は編集者に依頼してください。",
+    "visibleUntil": "表示終了",
+    "visibleUntilHint": "この時刻以降、利用者には表示されません。",
+    "times": "時間",
+    "cancel": "運休にする",
+    "cancelTitle": "臨時便を運休にしますか？",
+    "cancelText": "「{title}」を運休にします。",
+    "cancelled": "運休にしました",
+    "errors": {
+      "departure_before_arrival": "出発は到着より後にしてください",
+      "before_previous_stop": "前の停留所より前の時刻です",
+      "invalid_time": "時刻は HH:MM で入力してください"
+    }
   }
 }
