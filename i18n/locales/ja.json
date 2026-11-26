@@ -450,7 +450,7 @@
       "departure_before_arrival": "出発は到着より後にしてください",
       "before_previous_stop": "前の停留所より前の時刻です",
       "invalid_time": "時刻は HH:MM で入力してください",
-      "visible_until_too_early": "最初の停留所より後にしてください（利用者に表示されません）",
+      "visible_until_too_early": "最後の停留所より後にしてください（途中で利用者に表示されなくなります）",
       "date_past": "過去の日付は選べません"
     },
     "today": "今日",

@@ -95,7 +95,7 @@ async function save() {
   // and not saved): delete them (best effort; a later save tries again).
   const storage = supabase.storage.from(BRANDING_BUCKET)
   const listed = await storage.list(o.id, { limit: 100 })
-  const stale = staleBrandingPaths(o.id, (listed.data ?? []).map(f => f.name), [branding.logo_url, branding.cover_url])
+  const stale = staleBrandingPaths(o.id, listed.data ?? [], [branding.logo_url, branding.cover_url])
   if (stale.length > 0) await storage.remove(stale)
   busy.value = false
   op.updateOperator(data)

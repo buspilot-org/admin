@@ -450,7 +450,7 @@
       "departure_before_arrival": "Departure must not be before arrival",
       "before_previous_stop": "Earlier than the previous stop",
       "invalid_time": "Use HH:MM",
-      "visible_until_too_early": "Must be after the first stop, or riders never see the trip",
+      "visible_until_too_early": "Must be after the last stop, or riders lose the trip on the way",
       "date_past": "The date cannot be in the past"
     },
     "today": "Today",

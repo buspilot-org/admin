@@ -31,9 +31,13 @@ describe('branding images', () => {
     const base = `https://x.supabase.co/storage/v1/object/public/operator-branding/${OP}`
     expect(brandingPathFromUrl(`${base}/logo-2.png?v=1`)).toBe(`${OP}/logo-2.png`)
     expect(brandingPathFromUrl('https://elsewhere.example/logo.png')).toBeNull()
-    const files = ['logo.png', 'logo-1.png', 'logo-2.webp', 'cover-3.jpg', 'notes.txt']
-    expect(staleBrandingPaths(OP, files, [`${base}/logo-2.webp`, null])).toEqual([`${OP}/logo.png`, `${OP}/logo-1.png`, `${OP}/cover-3.jpg`])
-    expect(staleBrandingPaths(OP, files, [`${base}/logo-2.webp`, `${base}/cover-3.jpg`])).toEqual([`${OP}/logo.png`, `${OP}/logo-1.png`])
+    const now = new Date('2026-11-26T12:00:00Z')
+    const old = '2026-11-26T09:00:00Z'
+    const files = ['logo.png', 'logo-1.png', 'logo-2.webp', 'cover-3.jpg', 'notes.txt'].map(name => ({ name, created_at: old }))
+    expect(staleBrandingPaths(OP, files, [`${base}/logo-2.webp`, null], now)).toEqual([`${OP}/logo.png`, `${OP}/logo-1.png`, `${OP}/cover-3.jpg`])
+    expect(staleBrandingPaths(OP, files, [`${base}/logo-2.webp?v=1`, `${base}/cover-3.jpg`], now)).toEqual([`${OP}/logo.png`, `${OP}/logo-1.png`])
+    // Someone else's recent, not yet saved upload stays.
+    expect(staleBrandingPaths(OP, [{ name: 'logo-9.png', created_at: '2026-11-26T11:50:00Z' }], [null, null], now)).toEqual([])
   })
 
   it('reads only the documented branding keys', () => {

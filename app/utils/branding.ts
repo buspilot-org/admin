@@ -34,7 +34,13 @@ export function brandingPathFromUrl(url: string | null): string | null {
   const marker = `/object/public/${BRANDING_BUCKET}/`
   const i = url.indexOf(marker)
   if (i < 0) return null
-  return decodeURIComponent(url.slice(i + marker.length).split(/[?#]/)[0]!)
+  const path = url.slice(i + marker.length).split(/[?#]/)[0]!
+  try {
+    return decodeURIComponent(path)
+  }
+  catch {
+    return path
+  }
 }
 
 /**
@@ -42,13 +48,23 @@ export function brandingPathFromUrl(url: string | null): string | null {
  * longer uses (replaced, removed, or uploaded and never saved): deleted after
  * a save.
  */
-export function staleBrandingPaths(operatorId: string, fileNames: readonly string[], keepUrls: readonly (string | null)[]): string[] {
+export function staleBrandingPaths(
+  operatorId: string,
+  files: readonly { name: string, created_at?: string | null }[],
+  keepUrls: readonly (string | null)[],
+  now: Date = new Date(),
+): string[] {
   const keep = new Set(keepUrls.map(brandingPathFromUrl).filter((p): p is string => !!p))
-  return fileNames
-    .filter(name => /^(logo|cover)(-[\w-]+)?\.(png|jpg|webp)$/.test(name))
-    .map(name => `${operatorId}/${name}`)
+  return files
+    .filter(f => /^(logo|cover)(-[\w-]+)?\.(png|jpg|webp)$/.test(f.name))
+    // Recent uploads may belong to another owner (or tab) who has not saved yet.
+    .filter(f => !f.created_at || now.getTime() - new Date(f.created_at).getTime() > STALE_UPLOAD_MS)
+    .map(f => `${operatorId}/${f.name}`)
     .filter(path => !keep.has(path))
 }
+
+/** Unsaved uploads younger than this are left alone by the cleanup. */
+export const STALE_UPLOAD_MS = 60 * 60 * 1000
 
 // A type alias (not an interface), so it fits the Json column type.
 export type Branding = {

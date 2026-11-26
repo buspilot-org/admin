@@ -50,6 +50,8 @@ const busy = ref(false)
 let nextKey = 0
 
 const isDriver = computed(() => props.ownVehicleIds !== null)
+// Set when the dialog opens (the page may stay open past midnight).
+const today = ref('')
 const VISIBLE_AFTER_LAST_STOP_MS = 2 * 60 * 60 * 1000
 const tz = computed(() => op.timezone.value)
 
@@ -60,9 +62,9 @@ function emptyAudiences(): Record<string, AudienceForm> {
 watch(open, async (isOpen) => {
   if (!isOpen) return
   const tr = props.trip
-  const today = dateInTimeZone(new Date(), tz.value)
+  today.value = dateInTimeZone(new Date(), tz.value)
   tripId.value = tr?.id ?? null
-  serviceDate.value = tr?.service_date ?? today
+  serviceDate.value = tr?.service_date ?? today.value
   title.value = i18nFormValue(tr?.title, op.languages.value)
   vehicleId.value = tr ? tr.vehicle_id : (props.ownVehicleIds?.length === 1 ? props.ownVehicleIds[0]! : null)
   routeId.value = tr?.route_id ?? null
@@ -173,11 +175,11 @@ const visibleUntilIso = computed(() => {
   if (last) return new Date(new Date(last).getTime() + VISIBLE_AFTER_LAST_STOP_MS).toISOString()
   return serviceDate.value ? zonedInstant(addDays(serviceDate.value, 1), 0, tz.value).toISOString() : null
 })
+// Riders must see the trip until its last stop.
 const visibleUntilError = computed(() => {
-  const first = plannedTimes.value[0] ?? (serviceDate.value ? zonedInstant(serviceDate.value, 0, tz.value).toISOString() : null)
-  return visibleUntil.value && visibleUntilIso.value && first && visibleUntilIso.value <= first ? t('live.errors.visible_until_too_early') : null
+  const last = plannedTimes.value.at(-1) ?? (serviceDate.value ? zonedInstant(serviceDate.value, 0, tz.value).toISOString() : null)
+  return visibleUntil.value && visibleUntilIso.value && last && visibleUntilIso.value <= last ? t('live.errors.visible_until_too_early') : null
 })
-const today = computed(() => dateInTimeZone(new Date(), tz.value))
 
 const valid = computed(() =>
   !!cleanI18nText(title.value)
