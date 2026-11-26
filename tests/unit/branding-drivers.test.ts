@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest'
 import {
   BRANDING_MAX_BYTES,
   brandingObjectPath,
+  brandingPathFromUrl,
   checkBrandingImage,
   isBrandingUrl,
-  otherBrandingPaths,
   readBranding,
-  versionedUrl,
+  staleBrandingPaths,
 } from '../../app/utils/branding'
 import { diffIds, staffLabel } from '../../app/utils/drivers'
 
@@ -21,16 +21,19 @@ describe('branding images', () => {
     expect(checkBrandingImage({ type: 'image/gif', size: 10 })).toBe('type')
   })
 
-  it('stores files under the operator id (Storage policy)', () => {
-    expect(brandingObjectPath(OP, 'logo', 'image/png')).toBe(`${OP}/logo.png`)
-    expect(brandingObjectPath(OP, 'cover', 'image/jpeg')).toBe(`${OP}/cover.jpg`)
-    expect(() => brandingObjectPath(OP, 'logo', 'image/gif')).toThrow()
-    expect(otherBrandingPaths(OP, 'logo', `${OP}/logo.png`)).toEqual([`${OP}/logo.jpg`, `${OP}/logo.webp`])
+  it('stores each upload under the operator id with a new name (Storage policy)', () => {
+    expect(brandingObjectPath(OP, 'logo', 'image/png', 1)).toBe(`${OP}/logo-1.png`)
+    expect(brandingObjectPath(OP, 'cover', 'image/jpeg', 2)).toBe(`${OP}/cover-2.jpg`)
+    expect(() => brandingObjectPath(OP, 'logo', 'image/gif', 3)).toThrow()
   })
 
-  it('adds a version to the public URL', () => {
-    expect(versionedUrl('https://x.supabase.co/storage/v1/object/public/operator-branding/a/logo.png', 42))
-      .toBe('https://x.supabase.co/storage/v1/object/public/operator-branding/a/logo.png?v=42')
+  it('finds the files the saved branding no longer uses', () => {
+    const base = `https://x.supabase.co/storage/v1/object/public/operator-branding/${OP}`
+    expect(brandingPathFromUrl(`${base}/logo-2.png?v=1`)).toBe(`${OP}/logo-2.png`)
+    expect(brandingPathFromUrl('https://elsewhere.example/logo.png')).toBeNull()
+    const files = ['logo.png', 'logo-1.png', 'logo-2.webp', 'cover-3.jpg', 'notes.txt']
+    expect(staleBrandingPaths(OP, files, [`${base}/logo-2.webp`, null])).toEqual([`${OP}/logo.png`, `${OP}/logo-1.png`, `${OP}/cover-3.jpg`])
+    expect(staleBrandingPaths(OP, files, [`${base}/logo-2.webp`, `${base}/cover-3.jpg`])).toEqual([`${OP}/logo.png`, `${OP}/logo-1.png`])
   })
 
   it('reads only the documented branding keys', () => {

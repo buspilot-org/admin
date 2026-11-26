@@ -440,7 +440,7 @@
     "noAudiences": "No audiences yet.",
     "driverAudiences": "Drivers cannot choose audiences. With a route, the route's riders see the trip; ask an editor to add audiences.",
     "visibleUntil": "Visible until",
-    "visibleUntilHint": "Riders no longer see the trip after this time.",
+    "visibleUntilHint": "Riders no longer see the trip after this time. Empty: 2 hours after the last stop.",
     "times": "Times",
     "cancel": "Cancel trip",
     "cancelTitle": "Cancel this live trip?",
@@ -449,7 +449,11 @@
     "errors": {
       "departure_before_arrival": "Departure must not be before arrival",
       "before_previous_stop": "Earlier than the previous stop",
-      "invalid_time": "Use HH:MM"
-    }
+      "invalid_time": "Use HH:MM",
+      "visible_until_too_early": "Must be after the first stop, or riders never see the trip",
+      "date_past": "The date cannot be in the past"
+    },
+    "today": "Today",
+    "visibleUntilAuto": "Automatic (2 hours after the last stop)"
   }
 }

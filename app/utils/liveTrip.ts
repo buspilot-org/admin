@@ -58,10 +58,12 @@ export function planStopChanges(existing: readonly PlannedStop[], desired: reado
     }
   }
 
-  // New rows need free sequences between the kept ones around them. A
-  // sequence used before is never reused, so a rider's app that still has
-  // the old plan cannot mix up two stops. When a run does not fit, the next
-  // kept row joins the run (it is re-created).
+  // New rows need free sequences between the kept ones around them. No
+  // sequence of the saved plan is reused in the same save (also not one
+  // deleted now), so a rider's app with the plan it just loaded cannot mix up
+  // two stops. (The server keeps no history, so a sequence deleted in an
+  // earlier save can come back.) When a run does not fit, the next kept row
+  // joins the run (it is re-created).
   const used = new Set(existing.map(s => s.stop_sequence))
   const maxUsed = Math.max(0, ...used)
   const seqs: (number | null)[] = [...kept]

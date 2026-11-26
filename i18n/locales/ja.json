@@ -440,7 +440,7 @@
     "noAudiences": "利用者グループがありません。",
     "driverAudiences": "運転手は利用者グループを選べません。路線を選ぶと、その路線の利用者に表示されます。グループの追加は編集者に依頼してください。",
     "visibleUntil": "表示終了",
-    "visibleUntilHint": "この時刻以降、利用者には表示されません。",
+    "visibleUntilHint": "この時刻以降、利用者には表示されません。空欄なら最後の停留所の 2 時間後。",
     "times": "時間",
     "cancel": "運休にする",
     "cancelTitle": "臨時便を運休にしますか？",
@@ -449,7 +449,11 @@
     "errors": {
       "departure_before_arrival": "出発は到着より後にしてください",
       "before_previous_stop": "前の停留所より前の時刻です",
-      "invalid_time": "時刻は HH:MM で入力してください"
-    }
+      "invalid_time": "時刻は HH:MM で入力してください",
+      "visible_until_too_early": "最初の停留所より後にしてください（利用者に表示されません）",
+      "date_past": "過去の日付は選べません"
+    },
+    "today": "今日",
+    "visibleUntilAuto": "自動（最後の停留所の 2 時間後）"
   }
 }

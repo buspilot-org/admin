@@ -13,6 +13,8 @@ export const E2E_DRIVER_EMAIL = 'e2e-driver@demo.buspilot.test'
 // global setup makes with an admin code: Auth refuses a second code for the
 // same account within a short time.
 export const E2E_LOGIN_EMAIL = 'e2e-login@demo.buspilot.test'
+// A driver whose session global setup makes (live trips as a driver).
+export const E2E_LIVE_DRIVER_EMAIL = 'e2e-live-driver@demo.buspilot.test'
 export const E2E_LABEL_PREFIX = 'e2e '
 export const VEHICLE_ID = 'd0000000-0000-4000-8000-000000000701'
 export const PUBLISHABLE_KEY = process.env.SUPABASE_KEY ?? 'sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH'
@@ -83,6 +85,10 @@ export async function deleteTestPosts() {
 /** Live trips whose Japanese title starts with the prefix (planned stops and audiences cascade). */
 export async function deleteTestLiveTrips() {
   await api(`/rest/v1/trip_instance?kind=eq.live&${like('title->>ja')}`, { method: 'DELETE' })
+}
+
+export async function assignDriver(userId: string, vehicleId: string) {
+  await api('/rest/v1/driver_vehicle', { method: 'POST', body: JSON.stringify({ operator_id: OPERATOR_ID, user_id: userId, vehicle_id: vehicleId }) })
 }
 
 export async function deleteDriverVehicles(userId: string) {

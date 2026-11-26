@@ -110,12 +110,12 @@ describe('BrandingImageUpload', () => {
     expect(fake.storageCalls).toEqual([])
   })
 
-  it('uploads to <operator>/logo.<ext>, removes other formats and returns the public URL', async () => {
+  it('uploads to a new file under the operator and returns its public URL, without touching the saved file', async () => {
     const wrapper = await choose(new File([new Uint8Array(10)], 'logo.webp', { type: 'image/webp' }))
-    expect(fake.storageCalls[0]).toMatchObject({ table: 'operator-branding', op: 'upload', args: ['op1/logo.webp', expect.any(File), { upsert: true, contentType: 'image/webp', cacheControl: '3600' }] })
-    expect(fake.storageCalls[1]).toMatchObject({ op: 'remove', args: [['op1/logo.png', 'op1/logo.jpg']] })
+    expect(fake.storageCalls).toHaveLength(1)
+    expect(fake.storageCalls[0]).toMatchObject({ table: 'operator-branding', op: 'upload', args: [expect.stringMatching(/^op1\/logo-\d+\.webp$/), expect.any(File), { contentType: 'image/webp', cacheControl: '31536000' }] })
     const url = wrapper.emitted('update:modelValue')!.at(-1)![0] as string
-    expect(url).toMatch(/^https:\/\/project\.supabase\.co\/storage\/v1\/object\/public\/operator-branding\/op1\/logo\.webp\?v=\d+$/)
+    expect(url).toMatch(/^https:\/\/project\.supabase\.co\/storage\/v1\/object\/public\/operator-branding\/op1\/logo-\d+\.webp$/)
   })
 })
 

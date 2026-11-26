@@ -37,6 +37,8 @@ const { loadHolidays, holidayOn } = useNationalHolidays()
 const today = ref('')
 const now = ref(new Date())
 const instances = shallowRef<InstanceRow[]>([])
+// Live trips planned for later days (tours planned ahead), listed with today's.
+const upcomingLive = shallowRef<InstanceRow[]>([])
 const vehicles = shallowRef<Pick<T['vehicle']['Row'], 'id' | 'name' | 'active'>[]>([])
 const states = shallowRef<Pick<T['vehicle_state']['Row'], 'vehicle_id' | 'recorded_at' | 'speed_kmh'>[]>([])
 const patternStops = shallowRef<PatternStopRow[]>([])
@@ -49,13 +51,14 @@ const audiences = shallowRef<{ id: string, name: unknown }[] | null>(null)
 const ownVehicleIds = shallowRef<string[] | null>(null)
 
 const isDriver = computed(() => op.role.value === 'driver')
+const UPCOMING_DAYS = 60
 
 const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale) => {
   now.value = new Date()
   today.value = dateInTimeZone(now.value, op.timezone.value)
   const yesterday = addDays(today.value, -1)
   const driver = isDriver.value
-  const [inst, veh, st, schedule, running, rt, sp, au, dv] = await Promise.all([
+  const [inst, upc, veh, st, schedule, running, rt, sp, au, dv] = await Promise.all([
     supabase
       .from('trip_instance')
       .select(INSTANCE_SELECT)
@@ -63,6 +66,15 @@ const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale)
       // Trips past midnight belong to yesterday's service date; keep those
       // still running.
       .or(`service_date.eq.${today.value},and(service_date.eq.${yesterday},status.eq.active)`),
+    supabase
+      .from('trip_instance')
+      .select(INSTANCE_SELECT)
+      .eq('operator_id', operatorId)
+      .eq('kind', 'live')
+      .gt('service_date', today.value)
+      .lte('service_date', addDays(today.value, UPCOMING_DAYS))
+      .in('status', ['planned', 'active'])
+      .order('service_date'),
     supabase.from('vehicle').select('id, name, active').eq('operator_id', operatorId).order('name'),
     supabase.from('vehicle_state').select('vehicle_id, recorded_at, speed_kmh').eq('operator_id', operatorId),
     loadSchedule(operatorId),
@@ -77,11 +89,12 @@ const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale)
     loadHolidays(),
   ])
   if (isStale()) return
-  for (const res of [inst, veh, st, rt, sp, au, dv]) if (res?.error) throw res.error
+  for (const res of [inst, upc, veh, st, rt, sp, au, dv]) if (res?.error) throw res.error
   // Yesterday's trips that still run come first, then by start time.
   instances.value = (inst.data as unknown as InstanceRow[]).sort(
     (a, b) => a.service_date.localeCompare(b.service_date) || (a.trip?.start_time ?? 0) - (b.trip?.start_time ?? 0),
   )
+  upcomingLive.value = upc.data as unknown as InstanceRow[]
   vehicles.value = veh.data ?? []
   states.value = st.data ?? []
   routes.value = rt.data ?? []
@@ -90,7 +103,7 @@ const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale)
   ownVehicleIds.value = driver ? (dv?.data ?? []).map(x => x.vehicle_id) : null
 
   const patternIds = [...new Set(instances.value.map(i => i.pattern_id).filter((id): id is string => !!id))]
-  const liveIds = instances.value.filter(i => i.kind === 'live').map(i => i.id)
+  const liveIds = [...instances.value.filter(i => i.kind === 'live'), ...upcomingLive.value].map(i => i.id)
   const [ps, ls] = await Promise.all([
     patternIds.length > 0
       ? supabase.from('pattern_stop').select('pattern_id, stop_sequence, arrival_offset, stop(name)').in('pattern_id', patternIds)
@@ -138,7 +151,7 @@ const warnings = computed<Warning[]>(() =>
   computeWarnings(viewInstances.value, states.value, now.value, Number(config.public.stalePositionSeconds)),
 )
 const groups = computed(() => [...groupByVehicle(viewInstances.value).entries()])
-const liveTrips = computed(() => instances.value.filter(i => i.kind === 'live'))
+const liveTrips = computed(() => [...instances.value.filter(i => i.kind === 'live'), ...upcomingLive.value])
 const stopNameById = computed(() => new Map(stops.value.map(s => [s.id, s.name])))
 const plannedOf = (instanceId: string) => plannedStops.value.filter(p => p.trip_instance_id === instanceId)
 
@@ -246,6 +259,7 @@ async function cancelLive() {
           <thead>
             <tr>
               <th>{{ t('live.tripTitle') }}</th>
+              <th>{{ t('live.date') }}</th>
               <th>{{ t('live.vehicle') }}</th>
               <th>{{ t('live.times') }}</th>
               <th>{{ t('live.stops') }}</th>
@@ -262,6 +276,7 @@ async function cancelLive() {
                   <span class="color-swatch mr-1" :style="{ background: `#${inst.route.color ?? '888888'}` }" />{{ text(inst.route.name) }}
                 </div>
               </td>
+              <td class="tabular">{{ inst.service_date === today ? t('live.today') : inst.service_date }}</td>
               <td>{{ vehicleName(inst.vehicle_id) }}</td>
               <td class="tabular">{{ liveTimes(inst) }}</td>
               <td class="tabular">{{ plannedOf(inst.id).length }}</td>

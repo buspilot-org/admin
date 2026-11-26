@@ -31,29 +31,6 @@ export function indexesToWeekdays(indexes: readonly number[]): number {
 
 const inRange = (date: string, start: string, end: string) => date >= start && date <= end
 
-/**
- * Whether a calendar runs on a date, as the server's
- * `private.calendar_runs_on` decides: an `added` exception always runs (also
- * on a holiday, and over a `removed` one); otherwise the date must be in the
- * validity range on a selected weekday, not removed, and not a national
- * holiday when the calendar skips them. The apps ask the server
- * (`service_days()`); this mirrors it for explanations in the editor.
- */
-export function runsOn(
-  calendar: CalendarLike,
-  exceptions: readonly ExceptionLike[],
-  date: string,
-  nationalHolidays: ReadonlySet<string> = new Set(),
-): boolean {
-  const covering = exceptions.filter(e => inRange(date, e.start_date, e.end_date))
-  if (covering.some(e => e.type === 'added')) return true
-  if (covering.some(e => e.type === 'removed')) return false
-  if (!inRange(date, calendar.start_date, calendar.end_date)) return false
-  if ((calendar.weekdays & (1 << weekdayIndex(date))) === 0) return false
-  if (calendar.skip_national_holidays && nationalHolidays.has(date)) return false
-  return true
-}
-
 export interface HolidayLike {
   date: string
   name: unknown

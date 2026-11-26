@@ -440,7 +440,7 @@
     "noAudiences": "Noch keine Zielgruppen.",
     "driverAudiences": "Fahrer können keine Zielgruppen wählen. Mit Linie sehen die Fahrgäste der Linie die Fahrt; Zielgruppen trägt eine Redakteurin oder ein Redakteur ein.",
     "visibleUntil": "Sichtbar bis",
-    "visibleUntilHint": "Danach sehen Fahrgäste die Fahrt nicht mehr.",
+    "visibleUntilHint": "Danach sehen Fahrgäste die Fahrt nicht mehr. Leer: 2 Stunden nach dem letzten Halt.",
     "times": "Zeiten",
     "cancel": "Fahrt absagen",
     "cancelTitle": "Sonderfahrt absagen?",
@@ -449,7 +449,11 @@
     "errors": {
       "departure_before_arrival": "Abfahrt darf nicht vor der Ankunft liegen",
       "before_previous_stop": "Früher als der vorige Halt",
-      "invalid_time": "Format HH:MM"
-    }
+      "invalid_time": "Format HH:MM",
+      "visible_until_too_early": "Muss nach dem ersten Halt liegen, sonst sehen Fahrgäste die Fahrt nie",
+      "date_past": "Das Datum darf nicht in der Vergangenheit liegen"
+    },
+    "today": "Heute",
+    "visibleUntilAuto": "Automatisch (2 Stunden nach dem letzten Halt)"
   }
 }

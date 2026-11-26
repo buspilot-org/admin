@@ -5,6 +5,7 @@
 import { expect, test } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
 import {
+  assignDriver,
   deleteBrandingFiles,
   deleteDriverVehicles,
   deleteTestInviteCodes,
@@ -12,6 +13,7 @@ import {
   deleteTestPosts,
   deleteUser,
   E2E_DRIVER_EMAIL,
+  E2E_LIVE_DRIVER_EMAIL,
   E2E_LABEL_PREFIX,
   ensureStaff,
   OPERATOR_ID,
@@ -22,7 +24,7 @@ import {
   SUPABASE_URL,
   VEHICLE_ID,
 } from './local-supabase'
-import { OWNER_STATE } from './global-setup'
+import { DRIVER_STATE, OWNER_STATE } from './global-setup'
 
 // 1×1 transparent PNG.
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64')
@@ -114,15 +116,17 @@ test('revoke a code together with the memberships made with it', async ({ page }
 
 test('upload a logo', async ({ page }) => {
   const before = await operatorBranding()
-  const path = `${OPERATOR_ID}/logo.png`
+  let path: string | null = null
   try {
     await openToday(page)
     await page.goto('/settings')
     await page.getByTestId('branding-logo-file').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: PNG })
     const preview = page.getByTestId('branding-logo-preview')
-    await expect(preview).toHaveAttribute('src', new RegExp(`/storage/v1/object/public/operator-branding/${path}\\?v=\\d+$`))
-    // The file is in the bucket and served publicly.
+    // A new file next to the saved one (which stays until saving).
+    await expect(preview).toHaveAttribute('src', new RegExp(`/storage/v1/object/public/operator-branding/${OPERATOR_ID}/logo-\\d+\\.png$`))
     const src = (await preview.getAttribute('src'))!
+    path = src.split('/operator-branding/')[1]!
+    // The file is in the bucket and served publicly.
     const res = await page.request.get(src)
     expect(res.status()).toBe(200)
     expect(res.headers()['content-type']).toBe('image/png')
@@ -139,7 +143,8 @@ test('upload a logo', async ({ page }) => {
     }
   }
   finally {
-    await deleteBrandingFiles([path])
+    // Only the file this test uploaded.
+    if (path) await deleteBrandingFiles([path])
     // Only an https stack saves; restore what was there.
     if (JSON.stringify(await operatorBranding()) !== JSON.stringify(before)) await setOperatorBranding(before)
   }
@@ -222,4 +227,55 @@ test('create a live trip with two planned stops and an audience', async ({ page 
   await row.getByRole('button', { name: '運休にする' }).click()
   await page.getByRole('dialog').getByRole('button', { name: '運休にする' }).click()
   await expect(row).toContainText('運休')
+})
+
+test.describe('as a driver', () => {
+  test.use({ storageState: DRIVER_STATE })
+
+  test('create a live trip for the own vehicle', async ({ page }) => {
+    const driverId = await ensureStaff(E2E_LIVE_DRIVER_EMAIL, 'driver')
+    await deleteDriverVehicles(driverId)
+    await assignDriver(driverId, VEHICLE_ID)
+    try {
+      await openToday(page)
+      await page.getByTestId('new-live-trip').click()
+      const dialog = page.getByTestId('live-trip-dialog')
+      const title = label('運転手の便')
+      await dialog.getByTestId('i18n-ja').first().locator('input').fill(title)
+      // Only the own vehicle, chosen already; no audiences for drivers.
+      await expect(dialog.getByTestId('live-vehicle')).toContainText('Bus 1')
+      await expect(dialog.getByTestId('live-audience')).toHaveCount(0)
+      await expect(dialog).toContainText('運転手は利用者グループを選べません')
+      const rows = dialog.getByTestId('live-stop-row')
+      await choose(page, rows.nth(0).getByTestId('live-stop'), '北野坂', '北野')
+      await rows.nth(0).getByTestId('live-arrival').locator('input').fill('16:00')
+      await choose(page, rows.nth(1).getByTestId('live-stop'), '三宮', '三宮')
+      await rows.nth(1).getByTestId('live-arrival').locator('input').fill('16:20')
+      await dialog.getByTestId('live-save').click()
+      await expect(dialog).toBeHidden()
+
+      const row = page.getByTestId('live-trips').locator('tbody tr').filter({ hasText: title })
+      await expect(row).toContainText('16:00–16:20')
+      const [trip] = await select<{ id: string, vehicle_id: string, visible_until: string }>(
+        'trip_instance',
+        `title->>ja=eq.${encodeURIComponent(title)}&select=id,vehicle_id,visible_until`,
+      )
+      expect(trip!.vehicle_id).toBe(VEHICLE_ID)
+      // Default: two hours after the last stop (16:20 JST = 07:20 UTC).
+      expect(new Date(trip!.visible_until).toISOString()).toMatch(/T09:20:00/)
+      const stops = await select('trip_instance_stop', `trip_instance_id=eq.${trip!.id}&select=stop_sequence`)
+      expect(stops).toHaveLength(2)
+
+      // The driver may edit their trip too (reads planned stops and progress).
+      await row.getByTestId('edit-live-trip').click()
+      await expect(dialog.getByTestId('live-stop-row')).toHaveCount(2)
+      await dialog.getByRole('button', { name: 'キャンセル' }).click()
+      await row.getByRole('button', { name: '運休にする' }).click()
+      await page.getByRole('dialog').getByRole('button', { name: '運休にする' }).click()
+      await expect(row).toContainText('運休')
+    }
+    finally {
+      await deleteDriverVehicles(driverId)
+    }
+  })
 })

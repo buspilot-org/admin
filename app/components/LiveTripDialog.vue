@@ -50,6 +50,7 @@ const busy = ref(false)
 let nextKey = 0
 
 const isDriver = computed(() => props.ownVehicleIds !== null)
+const VISIBLE_AFTER_LAST_STOP_MS = 2 * 60 * 60 * 1000
 const tz = computed(() => op.timezone.value)
 
 function emptyAudiences(): Record<string, AudienceForm> {
@@ -65,7 +66,8 @@ watch(open, async (isOpen) => {
   title.value = i18nFormValue(tr?.title, op.languages.value)
   vehicleId.value = tr ? tr.vehicle_id : (props.ownVehicleIds?.length === 1 ? props.ownVehicleIds[0]! : null)
   routeId.value = tr?.route_id ?? null
-  visibleUntil.value = tr ? toLocalInput(tr.visible_until, tz.value) : `${addDays(today, 1)}T00:00`
+  // New trips: empty = until a while after the last stop (see save).
+  visibleUntil.value = tr ? toLocalInput(tr.visible_until, tz.value) : ''
   stopRows.value = []
   audienceForm.value = emptyAudiences()
   savedStops.value = []
@@ -161,8 +163,21 @@ const plannedRows = computed(() => stopRows.value.map((r) => {
 }))
 const timeErrors = computed<(StopTimeError | null)[]>(() => stopTimeErrors(plannedRows.value))
 
-// Visible until, read in the operator's time zone.
-const visibleUntilIso = computed(() => (visibleUntil.value ? fromLocalInput(visibleUntil.value, tz.value) : null))
+// Visible until, read in the operator's time zone. Empty: two hours after
+// the last planned time, or the end of the service day without times. Riders
+// see nothing after it, so it must not end before the first stop.
+const plannedTimes = computed(() => plannedRows.value.flatMap(r => [r.planned_arrival, r.planned_departure]).filter((x): x is string => !!x).sort())
+const visibleUntilIso = computed(() => {
+  if (visibleUntil.value) return fromLocalInput(visibleUntil.value, tz.value)
+  const last = plannedTimes.value.at(-1)
+  if (last) return new Date(new Date(last).getTime() + VISIBLE_AFTER_LAST_STOP_MS).toISOString()
+  return serviceDate.value ? zonedInstant(addDays(serviceDate.value, 1), 0, tz.value).toISOString() : null
+})
+const visibleUntilError = computed(() => {
+  const first = plannedTimes.value[0] ?? (serviceDate.value ? zonedInstant(serviceDate.value, 0, tz.value).toISOString() : null)
+  return visibleUntil.value && visibleUntilIso.value && first && visibleUntilIso.value <= first ? t('live.errors.visible_until_too_early') : null
+})
+const today = computed(() => dateInTimeZone(new Date(), tz.value))
 
 const valid = computed(() =>
   !!cleanI18nText(title.value)
@@ -170,7 +185,9 @@ const valid = computed(() =>
   && (!isDriver.value || !!vehicleId.value)
   && stopRows.value.length > 0
   && stopRows.value.every(r => !!r.stopId)
-  && timeErrors.value.every(e => e === null),
+  && timeErrors.value.every(e => e === null)
+  && !visibleUntilError.value
+  && (!!tripId.value || serviceDate.value >= today.value),
 )
 
 async function save() {
@@ -267,7 +284,15 @@ const timeErrorText = (e: StopTimeError | null | undefined) => (e ? t(`live.erro
         <I18nTextField v-model="title" :languages="op.languages.value" :label="t('live.tripTitle')" :hint="t('live.tripTitleHint')" required />
         <v-row dense>
           <v-col cols="12" sm="4">
-            <v-text-field v-model="serviceDate" type="date" :label="t('live.date')" :disabled="!!tripId" data-testid="live-date" />
+            <v-text-field
+              v-model="serviceDate"
+              type="date"
+              :min="tripId ? undefined : today"
+              :label="t('live.date')"
+              :disabled="!!tripId"
+              :error-messages="!tripId && serviceDate && serviceDate < today ? [t('live.errors.date_past')] : []"
+              data-testid="live-date"
+            />
           </v-col>
           <v-col cols="12" sm="4">
             <v-select v-model="vehicleId" :items="vehicleItems" :label="t('live.vehicle')" :hint="isDriver ? t('live.ownVehicleHint') : ''" persistent-hint data-testid="live-vehicle" />
@@ -350,7 +375,10 @@ const timeErrorText = (e: StopTimeError | null | undefined) => (e ? t(`live.erro
           type="datetime-local"
           :label="t('live.visibleUntil')"
           :hint="t('live.visibleUntilHint')"
+          :placeholder="visibleUntil ? undefined : t('live.visibleUntilAuto')"
+          :error-messages="visibleUntilError ? [visibleUntilError] : []"
           persistent-hint
+          persistent-placeholder
           clearable
           class="mt-4"
           style="max-width: 320px"

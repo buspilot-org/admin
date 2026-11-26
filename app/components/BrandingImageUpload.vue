@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // Upload the operator's logo or cover image to the operator-branding bucket
 // (owners only, PNG/JPEG/WebP up to 2 MiB; checked here before the upload
-// and again by Storage). The public URL goes into v-model; the settings form
-// stores it in operator.branding when saved.
+// and again by Storage). Each upload is a new file, so the image the apps
+// show does not change until the owner saves; the public URL goes into
+// v-model, and saving the settings stores it and deletes unused files.
 import type { Database } from '~/types/database.types'
 import type { BrandingImageError, BrandingImageKind } from '~/utils/branding'
 
@@ -24,18 +25,13 @@ async function onFile(event: Event) {
   if (!file) return
   fileError.value = checkBrandingImage(file)
   if (fileError.value) return
-  const path = brandingObjectPath(props.operatorId, props.kind, file.type)
+  const path = brandingObjectPath(props.operatorId, props.kind, file.type, Date.now())
   const storage = supabase.storage.from(BRANDING_BUCKET)
   busy.value = true
-  const { error } = await storage.upload(path, file, { upsert: true, contentType: file.type, cacheControl: '3600' })
-  if (error) {
-    busy.value = false
-    return notify.error(error)
-  }
-  // A logo.png must not stay behind when a logo.webp replaces it.
-  await storage.remove(otherBrandingPaths(props.operatorId, props.kind, path))
+  const { error } = await storage.upload(path, file, { contentType: file.type, cacheControl: '31536000' })
   busy.value = false
-  url.value = versionedUrl(storage.getPublicUrl(path).data.publicUrl, Date.now())
+  if (error) return notify.error(error)
+  url.value = storage.getPublicUrl(path).data.publicUrl
 }
 
 // The file itself is deleted when the settings are saved without it.

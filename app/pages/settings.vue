@@ -91,10 +91,12 @@ async function save() {
     busy.value = false
     return notify.error(error)
   }
-  // Images removed in the form: delete their files too (best effort).
+  // Files the saved branding no longer uses (replaced, removed, or uploaded
+  // and not saved): delete them (best effort; a later save tries again).
   const storage = supabase.storage.from(BRANDING_BUCKET)
-  const removed = [...(branding.logo_url ? [] : otherBrandingPaths(o.id, 'logo', null)), ...(branding.cover_url ? [] : otherBrandingPaths(o.id, 'cover', null))]
-  if (removed.length > 0) await storage.remove(removed)
+  const listed = await storage.list(o.id, { limit: 100 })
+  const stale = staleBrandingPaths(o.id, (listed.data ?? []).map(f => f.name), [branding.logo_url, branding.cover_url])
+  if (stale.length > 0) await storage.remove(stale)
   busy.value = false
   op.updateOperator(data)
   fill()
