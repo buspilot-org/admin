@@ -59,7 +59,7 @@ export default defineNuxtConfig({
       mapStyleUrl: 'https://tiles.openfreemap.org/styles/liberty',
       // Link the rider app opens from an invite QR code. {code} is replaced.
       // The code is in the fragment, so it never reaches a server log.
-      riderJoinUrl: 'https://app.buspilot.org/join#code={code}',
+      riderJoinUrl: 'https://buspilot.org/join#code={code}',
       // A vehicle position older than this (seconds) during an active trip is
       // reported as stale on the Today page.
       stalePositionSeconds: 120,

@@ -70,7 +70,7 @@ They build and start the console unless one already runs on port 3100 (or set `E
 |---|---|---|
 | `SUPABASE_URL`, `SUPABASE_KEY` | — | Supabase API URL and publishable key |
 | `NUXT_PUBLIC_MAP_STYLE_URL` | OpenFreeMap "liberty" | MapLibre style; free and keyless for development |
-| `NUXT_PUBLIC_RIDER_JOIN_URL` | `https://app.buspilot.org/join#code={code}` | Link in invite QR codes; the code sits in the fragment, so it does not reach server logs |
+| `NUXT_PUBLIC_RIDER_JOIN_URL` | `https://buspilot.org/join#code={code}` | Link in invite QR codes; the code sits in the fragment, so it does not reach server logs |
 | `NUXT_PUBLIC_STALE_POSITION_SECONDS` | `120` | Age after which a position during a trip counts as stale |
 
 The console is a static single-page app (`ssr: false`); `NUXT_PUBLIC_*` values are read at build time for a static deployment.

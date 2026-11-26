@@ -5,7 +5,7 @@ import { NAV_ITEMS, navFor } from '../../app/utils/navigation'
 
 describe('invite codes', () => {
   it('puts the code into the join link', () => {
-    expect(inviteJoinUrl('https://app.buspilot.org/join#code={code}', 'ABCDE-FGHJK')).toBe('https://app.buspilot.org/join#code=ABCDE-FGHJK')
+    expect(inviteJoinUrl('https://buspilot.org/join#code={code}', 'ABCDE-FGHJK')).toBe('https://buspilot.org/join#code=ABCDE-FGHJK')
     expect(inviteJoinUrl('https://x.test/j?c=', 'A B')).toBe('https://x.test/j?c=A%20B')
   })
 
