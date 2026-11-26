@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bestTextColor, contrastLevel, contrastRatio, normalizeHex } from '../../app/utils/color'
+import { bestTextColor, contrastLevel, contrastRatio, DEFAULT_COLOR, normalizeHex } from '../../app/utils/color'
 
 describe('colour contrast', () => {
   it('normalises hex colours', () => {
@@ -27,5 +27,11 @@ describe('colour contrast', () => {
   it('picks the more readable text colour', () => {
     expect(bestTextColor('1E6FD9')).toBe('FFFFFF')
     expect(bestTextColor('FFE600')).toBe('000000')
+  })
+
+  it('uses the brand colour as the default, readable with white text', () => {
+    expect(DEFAULT_COLOR).toBe('00777F')
+    expect(bestTextColor(DEFAULT_COLOR)).toBe('FFFFFF')
+    expect(contrastRatio(DEFAULT_COLOR, 'FFFFFF')).toBeGreaterThanOrEqual(4.5)
   })
 })

@@ -1,7 +1,14 @@
 /* Brand font (self-hosted, see fonts.css) with the brand fallbacks. */
+:root {
+  --bp-font: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
+  /* Vuetify components that set their own font read these. */
+  --v-font-body: var(--bp-font);
+  --v-font-heading: var(--bp-font);
+}
+
 html,
 body {
-  font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
+  font-family: var(--bp-font);
   font-weight: 500;
 }
 
@@ -39,6 +46,8 @@ body {
 
 /* "Buspilot" next to the symbol: the wordmark is set in weight 800. */
 .brand-wordmark {
+  font-size: 1.375rem;
   font-weight: 800;
+  line-height: 1.4;
   letter-spacing: 0;
 }

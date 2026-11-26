@@ -4,8 +4,11 @@
 import brand from './app/assets/brand/colors.json'
 
 // Vuetify themes from the Buspilot brand tokens (app/assets/brand/).
-function vuetifyColors(c: typeof brand.light) {
+// error is not a brand token; dark mode gets a lighter red so that error text
+// on the dark surface meets WCAG AA (Vuetify's #CF6679 is 4.4:1 there).
+function vuetifyColors(c: typeof brand.light, error?: string) {
   return {
+    ...(error ? { error } : {}),
     'primary': c.primary,
     'on-primary': c.onPrimary,
     'secondary': c.primaryStrong,
@@ -16,6 +19,9 @@ function vuetifyColors(c: typeof brand.light) {
     'on-surface': c.text,
     'success': c.onTime,
     'on-success': c.onStatus,
+    // Warnings (delays, stale positions) use the brand's delayed colour.
+    'warning': c.delayed,
+    'on-warning': c.onStatus,
   }
 }
 
@@ -108,7 +114,7 @@ export default defineNuxtConfig({
           },
           dark: {
             dark: true,
-            colors: vuetifyColors(brand.dark),
+            colors: vuetifyColors(brand.dark, '#F2808E'),
           },
         },
       },
