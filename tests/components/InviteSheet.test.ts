@@ -9,7 +9,7 @@ describe('InviteSheet', () => {
     const wrapper = await mountSuspended(InviteSheet, {
       props: {
         code: 'ABCDE-FGHJK',
-        joinUrl: 'https://app.buspilot.org/join#code=ABCDE-FGHJK',
+        joinUrl: 'https://buspilot.org/join#code=ABCDE-FGHJK',
         operatorName: '北野デモ国際学校',
         audienceName: '朝便A 保護者',
         label: 'April letter',

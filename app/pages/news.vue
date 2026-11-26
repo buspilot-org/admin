@@ -40,6 +40,10 @@ const statusColor: Record<PostStatus, string> = { draft: 'default', scheduled: '
 const fmt = (iso: string | null) => (iso ? `${dateInTimeZone(new Date(iso), op.timezone.value)} ${formatClock(iso, op.timezone.value)}` : '—')
 
 // Posts
+const categoryFilter = ref<PostCategory[]>([])
+const visiblePosts = computed(() =>
+  categoryFilter.value.length === 0 ? posts.value : posts.value.filter(p => categoryFilter.value.includes(p.category)),
+)
 const postDialog = ref(false)
 const postSelected = ref<PostRow | null>(null)
 function openPost(p: PostRow | null) {
@@ -105,12 +109,20 @@ async function deleteLink(l: LinkRow) {
 
     <v-window v-model="tab">
       <v-window-item value="posts">
-        <div class="mb-3"><v-btn color="primary" prepend-icon="mdi-plus" @click="openPost(null)">{{ t('news.new') }}</v-btn></div>
-        <v-card v-if="posts.length > 0" border flat>
+        <div class="d-flex flex-wrap align-center ga-3 mb-3">
+          <v-btn color="primary" prepend-icon="mdi-plus" @click="openPost(null)">{{ t('news.new') }}</v-btn>
+          <v-chip-group v-if="posts.length > 0" v-model="categoryFilter" multiple column :aria-label="t('news.filterByCategory')" data-testid="category-filter">
+            <v-chip v-for="c in POST_CATEGORIES" :key="c" :value="c" :prepend-icon="POST_CATEGORY_ICON[c]" filter variant="outlined" size="small">
+              {{ t(`news.categories.${c}`) }}
+            </v-chip>
+          </v-chip-group>
+        </div>
+        <v-card v-if="visiblePosts.length > 0" border flat>
           <v-table data-testid="posts-table">
             <thead>
               <tr>
                 <th>{{ t('news.postTitle') }}</th>
+                <th>{{ t('news.category') }}</th>
                 <th>{{ t('news.audience') }}</th>
                 <th>{{ t('news.publishedAt') }}</th>
                 <th>{{ t('news.expires') }}</th>
@@ -119,11 +131,16 @@ async function deleteLink(l: LinkRow) {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="p in posts" :key="p.id">
+              <tr v-for="p in visiblePosts" :key="p.id">
                 <td>
                   {{ text(p.title) }}
                   <v-icon v-if="p.send_push" icon="mdi-bell-ring-outline" size="small" :title="t('news.sendPush')" />
                   <div v-if="p.route_id" class="text-caption text-medium-emphasis">{{ nameOf(routes, p.route_id) }}</div>
+                </td>
+                <td>
+                  <v-chip size="small" variant="tonal" :color="POST_CATEGORY_COLOR[p.category]" :prepend-icon="POST_CATEGORY_ICON[p.category]">
+                    {{ t(`news.categories.${p.category}`) }}
+                  </v-chip>
                 </td>
                 <td>{{ nameOf(audiences, p.audience_id) ?? t('news.allMembers') }}</td>
                 <td class="tabular">{{ fmt(p.published_at) }}</td>
@@ -137,6 +154,7 @@ async function deleteLink(l: LinkRow) {
             </tbody>
           </v-table>
         </v-card>
+        <EmptyState v-else-if="!loading && posts.length > 0" icon="mdi-filter-off-outline" :title="t('news.noMatch')" />
         <EmptyState v-else-if="!loading" icon="mdi-bullhorn" :title="t('news.empty')" />
       </v-window-item>
 

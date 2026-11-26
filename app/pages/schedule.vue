@@ -3,6 +3,7 @@
 // a preview "which trips run on date X".
 import type { Database } from '~/types/database.types'
 import type { CalendarRow, PatternRow, TripRow } from '~/composables/useScheduleData'
+import type { NationalHoliday } from '~/composables/useNationalHolidays'
 
 definePageMeta({ roles: ['owner', 'editor'] })
 
@@ -11,7 +12,8 @@ const supabase = useSupabaseClient<Database>()
 const op = useOperator()
 const text = useText()
 const notify = useNotify()
-const { loadSchedule } = useScheduleData()
+const { loadSchedule, calendarsRunningOn } = useScheduleData()
+const { holidays, loadHolidays, holidayOn } = useNationalHolidays()
 
 const tab = ref<'trips' | 'calendars' | 'preview'>('trips')
 const patterns = shallowRef<PatternRow[]>([])
@@ -24,13 +26,14 @@ const emptyException = (): ExceptionForm => ({ start: '', end: '', type: 'remove
 const exceptionForm = ref<Record<string, ExceptionForm>>({})
 
 const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale) => {
-  const data = await loadSchedule(operatorId)
+  const [data] = await Promise.all([loadSchedule(operatorId), loadHolidays()])
   if (isStale()) return
   patterns.value = data.patterns
   trips.value = data.trips
   calendars.value = data.calendars
   for (const c of data.calendars) exceptionForm.value[c.id] ??= emptyException()
   if (!patterns.value.some(p => p.id === patternId.value)) patternId.value = patterns.value[0]?.id ?? null
+  await loadPreview()
 })
 
 const patternItems = computed(() => patterns.value.map(p => ({
@@ -103,15 +106,45 @@ async function removeException(id: string) {
   await reload()
 }
 
-// Preview
+// Preview: the server decides which calendars run (service_days()), so it
+// matches what the scheduler creates, national holidays included.
 const previewDate = ref(dateInTimeZone(new Date(), op.timezone.value))
+const previewCalendars = shallowRef<Set<string>>(new Set())
+const previewError = ref<string | null>(null)
+let previewSeq = 0
+async function loadPreview() {
+  const operatorId = op.currentId.value
+  const date = previewDate.value
+  const seq = ++previewSeq
+  if (!operatorId || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    previewCalendars.value = new Set()
+    return
+  }
+  try {
+    const running = await calendarsRunningOn(operatorId, date)
+    if (seq !== previewSeq) return
+    previewCalendars.value = running
+    previewError.value = null
+  }
+  catch (err) {
+    if (seq !== previewSeq) return
+    previewCalendars.value = new Set()
+    previewError.value = err instanceof Error ? err.message : String((err as { message?: unknown })?.message ?? err)
+  }
+}
+watch(previewDate, loadPreview)
+const previewHoliday = computed(() => (holidays.value ? holidayOn(previewDate.value) : null))
 const previewTrips = computed(() => {
   if (!previewDate.value) return []
   const byId = new Map(patterns.value.map(p => [p.id, p]))
-  return tripsOnDate(trips.value, calendars.value, previewDate.value)
+  return tripsOnDate(trips.value, previewCalendars.value)
     .map(tr => ({ trip: tr, pattern: byId.get(tr.pattern_id) ?? null }))
     .sort((a, b) => a.trip.start_time - b.trip.start_time)
 })
+
+/** National holidays that fall on a calendar's service days (skipped or served). */
+const calendarHolidays = (c: CalendarRow) => holidaysInService(c, c.calendar_exception, holidays.value ?? [])
+const holidayLabel = (h: NationalHoliday) => `${h.date} ${text(h.name)}`
 
 const weekdayLabels = (mask: number) => weekdaysToIndexes(mask).map(i => t(`weekday.short.${i}`)).join(' ')
 const rangeLabel = (start: string, end: string) => (start === end ? start : `${start} – ${end}`)
@@ -177,6 +210,7 @@ const rangeLabel = (start: string, end: string) => (start === end ? start : `${s
             <v-card-subtitle class="text-wrap">
               {{ weekdayLabels(c.weekdays) }} · {{ rangeLabel(c.start_date, c.end_date) }}
               <template v-if="c.skip_national_holidays"> · {{ t('schedule.calendars.noHolidays') }}</template>
+              <template v-else> · {{ t('schedule.calendars.runsOnHolidays') }}</template>
               · {{ t('schedule.calendars.tripCount', { n: tripsUsing(c.id) }) }}
             </v-card-subtitle>
             <template #append>
@@ -193,6 +227,24 @@ const rangeLabel = (start: string, end: string) => (start === end ? start : `${s
             </template>
           </v-card-item>
           <v-card-text>
+            <div v-if="calendarHolidays(c).length > 0" class="mb-3" data-testid="calendar-holidays">
+              <div class="text-subtitle-2 mb-1">
+                {{ c.skip_national_holidays ? t('schedule.calendars.holidaysSkipped', { n: calendarHolidays(c).length }) : t('schedule.calendars.holidaysServed', { n: calendarHolidays(c).length }) }}
+              </div>
+              <div class="d-flex flex-wrap ga-1">
+                <v-chip
+                  v-for="h in calendarHolidays(c)"
+                  :key="h.date"
+                  size="small"
+                  variant="tonal"
+                  :color="c.skip_national_holidays ? 'error' : 'success'"
+                  class="tabular"
+                >
+                  {{ holidayLabel(h) }}
+                </v-chip>
+              </div>
+              <div class="text-caption text-medium-emphasis mt-1">{{ t('schedule.calendars.holidayExceptionHint') }}</div>
+            </div>
             <div class="text-subtitle-2 mb-1">{{ t('schedule.exceptions.title') }}</div>
             <v-table density="compact">
               <tbody>
@@ -229,7 +281,10 @@ const rangeLabel = (start: string, end: string) => (start === end ? start : `${s
 
       <v-window-item value="preview">
         <v-text-field v-model="previewDate" type="date" :label="t('schedule.preview.date')" style="max-width: 220px" />
-        <v-alert type="info" variant="tonal" density="compact" class="mb-3">{{ t('schedule.preview.holidayNote') }}</v-alert>
+        <v-alert v-if="previewHoliday" type="info" variant="tonal" density="compact" class="mb-3" icon="mdi-flag-variant" data-testid="preview-holiday">
+          {{ t('schedule.preview.holiday', { name: text(previewHoliday.name) }) }}
+        </v-alert>
+        <v-alert v-if="previewError" type="error" variant="tonal" density="compact" class="mb-3">{{ t('common.loadFailed', { message: previewError }) }}</v-alert>
         <v-card border flat>
           <v-table density="compact" data-testid="preview-table">
             <tbody>
@@ -251,7 +306,7 @@ const rangeLabel = (start: string, end: string) => (start === end ? start : `${s
     </v-window>
 
     <TripDialog v-model="tripDialog" :mode="tripMode" :pattern-id="patternId" :trip="tripSelected" :calendars="calendars" @saved="reload" />
-    <CalendarDialog v-model="calendarDialog" :calendar="calendarSelected" @saved="reload" />
+    <CalendarDialog v-model="calendarDialog" :calendar="calendarSelected" :holidays="holidays ?? []" @saved="reload" />
     <ConfirmDialog
       v-model="deleteOpen"
       :title="t('schedule.trip.deleteTitle')"

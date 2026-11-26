@@ -17,3 +17,21 @@ export function inviteStatus(
   if (code.max_uses !== null && code.uses >= code.max_uses) return 'used_up'
   return 'active'
 }
+
+interface RevokeRpc {
+  rpc: (fn: 'revoke_invite_code', args: { p_invite_code_id: string, p_revoke_memberships: boolean }) => PromiseLike<{ data: number | null, error: unknown }>
+}
+
+/**
+ * Revokes a code and, if asked, the active memberships made with it, in one
+ * server transaction (`revoke_invite_code`). Resolves to the number of
+ * memberships revoked.
+ */
+export async function revokeInviteCode(client: RevokeRpc, inviteCodeId: string, revokeMemberships: boolean): Promise<number> {
+  const { data, error } = await client.rpc('revoke_invite_code', {
+    p_invite_code_id: inviteCodeId,
+    p_revoke_memberships: revokeMemberships,
+  })
+  if (error) throw error
+  return data ?? 0
+}

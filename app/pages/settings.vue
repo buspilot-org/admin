@@ -2,7 +2,8 @@
 // Operator settings (owners): display name per language, branding, languages,
 // time zone and default route visibility. Staff management is a follow-up
 // (needs an Edge Function for invitations).
-import type { Database, Json } from '~/types/database.types'
+import type { Database } from '~/types/database.types'
+import type { Branding } from '~/utils/branding'
 
 definePageMeta({ roles: ['owner'] })
 
@@ -17,7 +18,8 @@ const LANGUAGE_CHOICES = ['ja', 'en', 'de', 'zh', 'ko', 'pt', 'es', 'vi', 'tl']
 
 const name = ref<I18nText>({})
 const color = ref('')
-const logoUrl = ref('')
+const logoUrl = ref<string | null>(null)
+const coverUrl = ref<string | null>(null)
 const languages = ref<string[]>([])
 const timezone = ref('')
 const defaultVisibility = ref<Visibility>('invited_eta')
@@ -30,10 +32,11 @@ onMounted(() => Promise.all((['ja', 'en', 'de'] as const).map(l => nuxtApp.$i18n
 function fill() {
   const o = op.operator.value
   if (!o) return
-  const branding = (o.branding && typeof o.branding === 'object' && !Array.isArray(o.branding) ? o.branding : {}) as Record<string, Json | undefined>
+  const branding = readBranding(o.branding)
   name.value = i18nFormValue(o.name, o.languages)
-  color.value = typeof branding.color === 'string' ? branding.color : DEFAULT_COLOR
-  logoUrl.value = typeof branding.logo_url === 'string' ? branding.logo_url : ''
+  color.value = branding.color ?? DEFAULT_COLOR
+  logoUrl.value = branding.logo_url
+  coverUrl.value = branding.cover_url
   languages.value = [...o.languages]
   timezone.value = o.timezone
   defaultVisibility.value = o.default_visibility
@@ -42,7 +45,10 @@ function fill() {
 watch(() => op.operator.value?.id, fill, { immediate: true })
 
 const hex = computed(() => normalizeHex(color.value))
-const logoValid = computed(() => !logoUrl.value.trim() || /^https:\/\/\S+$/.test(logoUrl.value.trim()))
+// The schema takes https URLs only; a local Supabase serves Storage over
+// http, so images uploaded there cannot be saved (see README).
+const logoValid = computed(() => !logoUrl.value || isBrandingUrl(logoUrl.value))
+const coverValid = computed(() => !coverUrl.value || isBrandingUrl(coverUrl.value))
 const timezoneValid = computed(() => {
   try {
     new Intl.DateTimeFormat('en', { timeZone: timezone.value })
@@ -52,7 +58,7 @@ const timezoneValid = computed(() => {
     return false
   }
 })
-const valid = computed(() => !!cleanI18nText(name.value) && !!hex.value && logoValid.value && languages.value.length > 0 && timezoneValid.value)
+const valid = computed(() => !!cleanI18nText(name.value) && !!hex.value && logoValid.value && coverValid.value && languages.value.length > 0 && timezoneValid.value)
 const languageItems = computed(() => LANGUAGE_CHOICES.map(l => ({ value: l, title: t(`languages.${l}`) })))
 // The sample text exists in the UI languages only.
 const previewUiLocale = computed(() => (['ja', 'en', 'de'] as const).find(l => l === previewLang.value) ?? 'en')
@@ -62,11 +68,12 @@ async function save() {
   const o = op.operator.value
   if (!valid.value || !o) return
   busy.value = true
-  const branding = {
-    ...((o.branding && typeof o.branding === 'object' && !Array.isArray(o.branding)) ? o.branding : {}),
+  // Only the documented keys (the schema rejects others); colours as RRGGBB.
+  const branding: Branding = {
+    logo_url: logoUrl.value,
+    cover_url: coverUrl.value,
     color: hex.value,
     text_color: bestTextColor(hex.value!),
-    logo_url: logoUrl.value.trim() || null,
   }
   const { data, error } = await supabase
     .from('operator')
@@ -80,8 +87,17 @@ async function save() {
     .eq('id', o.id)
     .select('id, slug, name, timezone, languages, branding, default_visibility')
     .single()
+  if (error) {
+    busy.value = false
+    return notify.error(error)
+  }
+  // Files the saved branding no longer uses (replaced, removed, or uploaded
+  // and not saved): delete them (best effort; a later save tries again).
+  const storage = supabase.storage.from(BRANDING_BUCKET)
+  const listed = await storage.list(o.id, { limit: 100 })
+  const stale = staleBrandingPaths(o.id, listed.data ?? [], [branding.logo_url, branding.cover_url])
+  if (stale.length > 0) await storage.remove(stale)
   busy.value = false
-  if (error) return notify.error(error)
   op.updateOperator(data)
   fill()
   notify.success(t('common.saved'))
@@ -120,7 +136,11 @@ async function save() {
               >
             </div>
             <ContrastCheck :color="color" class="mb-4" />
-            <v-text-field v-model="logoUrl" :label="t('settings.logoUrl')" :hint="t('settings.logoHint')" persistent-hint :error-messages="logoValid ? [] : [t('settings.logoInvalid')]" />
+            <template v-if="op.currentId.value">
+              <BrandingImageUpload v-model="logoUrl" kind="logo" :operator-id="op.currentId.value" :label="t('settings.logo')" />
+              <BrandingImageUpload v-model="coverUrl" kind="cover" :operator-id="op.currentId.value" :label="t('settings.cover')" />
+            </template>
+            <v-alert v-if="!logoValid || !coverValid" type="warning" variant="tonal" density="compact" data-testid="branding-http">{{ t('settings.httpsOnly') }}</v-alert>
           </v-card-text>
         </v-card>
         <div class="d-flex mt-4">
@@ -135,6 +155,7 @@ async function save() {
               <v-btn v-for="l in languages" :key="l" :value="l" size="small">{{ l.toUpperCase() }}</v-btn>
             </v-btn-toggle>
             <div class="rider-card rounded-lg overflow-hidden border" :lang="previewLang">
+              <img v-if="coverUrl && coverValid" :src="coverUrl" alt="" class="d-block w-100" style="height: 96px; object-fit: cover" referrerpolicy="no-referrer">
               <div class="pa-4 d-flex align-center ga-3" :style="{ background: `#${hex ?? DEFAULT_COLOR}`, color: `#${bestTextColor(hex ?? DEFAULT_COLOR)}` }">
                 <img v-if="logoUrl && logoValid" :src="logoUrl" alt="" width="40" height="40" class="rounded bg-white" style="object-fit: contain" referrerpolicy="no-referrer">
                 <v-icon v-else icon="mdi-bus-school" size="40" />

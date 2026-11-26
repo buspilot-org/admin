@@ -31,24 +31,27 @@ export function indexesToWeekdays(indexes: readonly number[]): number {
 
 const inRange = (date: string, start: string, end: string) => date >= start && date <= end
 
+export interface HolidayLike {
+  date: string
+  name: unknown
+}
+
 /**
- * Whether a calendar runs on a date. Exceptions win over the regular pattern
- * ("removed" wins when both kinds cover the date). National holidays are
- * skipped when the calendar says so and a holiday list is given.
+ * National holidays on which the calendar would run by its weekdays and
+ * validity, and which therefore matter: skipped if the calendar skips
+ * holidays, served otherwise. Holidays already removed or added by an
+ * exception are left out (the exception decides).
  */
-export function runsOn(
-  calendar: CalendarLike,
+export function holidaysInService<H extends HolidayLike>(
+  calendar: Omit<CalendarLike, 'skip_national_holidays'>,
   exceptions: readonly ExceptionLike[],
-  date: string,
-  nationalHolidays: ReadonlySet<string> = new Set(),
-): boolean {
-  const covering = exceptions.filter(e => inRange(date, e.start_date, e.end_date))
-  if (covering.some(e => e.type === 'removed')) return false
-  if (covering.some(e => e.type === 'added')) return true
-  if (!inRange(date, calendar.start_date, calendar.end_date)) return false
-  if ((calendar.weekdays & (1 << weekdayIndex(date))) === 0) return false
-  if (calendar.skip_national_holidays && nationalHolidays.has(date)) return false
-  return true
+  holidays: readonly H[],
+): H[] {
+  return holidays.filter(h =>
+    inRange(h.date, calendar.start_date, calendar.end_date)
+    && (calendar.weekdays & (1 << weekdayIndex(h.date))) !== 0
+    && !exceptions.some(e => inRange(h.date, e.start_date, e.end_date)),
+  )
 }
 
 /** Number of days in an inclusive date range. */

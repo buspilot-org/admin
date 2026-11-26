@@ -143,6 +143,32 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"driver_vehicle": {
+                  Row: {
+                    "created_at": string,"operator_id": string,"user_id": string,"vehicle_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"operator_id": string,"user_id": string,"vehicle_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"operator_id"?: string,"user_id"?: string,"vehicle_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "driver_vehicle_operator_id_user_id_fkey"
+      columns: ["operator_id","user_id"]
+isOneToOne: false
+      referencedRelation: "staff_role"
+      referencedColumns: ["operator_id","user_id"]
+    },{
+      foreignKeyName: "driver_vehicle_operator_id_vehicle_id_fkey"
+      columns: ["operator_id","vehicle_id"]
+isOneToOne: false
+      referencedRelation: "vehicle"
+      referencedColumns: ["operator_id","id"]
+    }
+                  ]
                 },"invite_code": {
                   Row: {
                     "audience_id": string,"code_hash": string,"created_at": string,"created_by": string | null,"expires_at": string | null,"id": string,"label": string | null,"max_uses": number | null,"operator_id": string,"revoked_at": string | null,"uses": number
@@ -194,6 +220,20 @@ isOneToOne: false
       referencedRelation: "audience"
       referencedColumns: ["operator_id","id"]
     }
+                  ]
+                },"national_holiday": {
+                  Row: {
+                    "created_at": string,"date": string,"name": NonNullable<Json>
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"date": string,"name": NonNullable<Json>
+                  }
+                  Update: {
+                    "created_at"?: string,"date"?: string,"name"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    
                   ]
                 },"operator": {
                   Row: {
@@ -263,14 +303,14 @@ isOneToOne: false
                   ]
                 },"post": {
                   Row: {
-                    "audience_id": string | null,"body": NonNullable<Json>,"created_at": string,"created_by": string | null,"expires_at": string | null,"id": string,"operator_id": string,"published_at": string | null,"route_id": string | null,"send_push": boolean,"title": NonNullable<Json>,"updated_at": string
+                    "audience_id": string | null,"body": NonNullable<Json>,"category": Database["public"]['Enums']["post_category"],"created_at": string,"created_by": string | null,"expires_at": string | null,"id": string,"operator_id": string,"published_at": string | null,"route_id": string | null,"send_push": boolean,"title": NonNullable<Json>,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "audience_id"?: string | null,"body": NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"operator_id": string,"published_at"?: string | null,"route_id"?: string | null,"send_push"?: boolean,"title": NonNullable<Json>,"updated_at"?: string
+                    "audience_id"?: string | null,"body": NonNullable<Json>,"category"?: Database["public"]['Enums']["post_category"],"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"operator_id": string,"published_at"?: string | null,"route_id"?: string | null,"send_push"?: boolean,"title": NonNullable<Json>,"updated_at"?: string
                   }
                   Update: {
-                    "audience_id"?: string | null,"body"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"operator_id"?: string,"published_at"?: string | null,"route_id"?: string | null,"send_push"?: boolean,"title"?: NonNullable<Json>,"updated_at"?: string
+                    "audience_id"?: string | null,"body"?: NonNullable<Json>,"category"?: Database["public"]['Enums']["post_category"],"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"operator_id"?: string,"published_at"?: string | null,"route_id"?: string | null,"send_push"?: boolean,"title"?: NonNullable<Json>,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -441,14 +481,14 @@ isOneToOne: false
                   ]
                 },"subscription": {
                   Row: {
-                    "created_at": string,"device_id": string,"id": string,"muted_until": string | null,"notify_passed": boolean,"operator_id": string,"pattern_id": string,"stop_sequence": number,"trigger": Database["public"]['Enums']["alert_trigger"],"trigger_value": number
+                    "created_at": string,"device_id": string,"id": string,"muted_until": string | null,"notify_passed": boolean,"operator_id": string,"pattern_id": string | null,"stop_sequence": number,"trigger": Database["public"]['Enums']["alert_trigger"],"trigger_value": number,"trip_instance_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"device_id": string,"id"?: string,"muted_until"?: string | null,"notify_passed"?: boolean,"operator_id": string,"pattern_id": string,"stop_sequence": number,"trigger"?: Database["public"]['Enums']["alert_trigger"],"trigger_value"?: number
+                    "created_at"?: string,"device_id": string,"id"?: string,"muted_until"?: string | null,"notify_passed"?: boolean,"operator_id": string,"pattern_id"?: string | null,"stop_sequence": number,"trigger"?: Database["public"]['Enums']["alert_trigger"],"trigger_value"?: number,"trip_instance_id"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"device_id"?: string,"id"?: string,"muted_until"?: string | null,"notify_passed"?: boolean,"operator_id"?: string,"pattern_id"?: string,"stop_sequence"?: number,"trigger"?: Database["public"]['Enums']["alert_trigger"],"trigger_value"?: number
+                    "created_at"?: string,"device_id"?: string,"id"?: string,"muted_until"?: string | null,"notify_passed"?: boolean,"operator_id"?: string,"pattern_id"?: string | null,"stop_sequence"?: number,"trigger"?: Database["public"]['Enums']["alert_trigger"],"trigger_value"?: number,"trip_instance_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -463,6 +503,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "pattern_stop"
       referencedColumns: ["operator_id","pattern_id","stop_sequence"]
+    },{
+      foreignKeyName: "subscription_trip_instance_stop_fkey"
+      columns: ["operator_id","trip_instance_id","stop_sequence"]
+isOneToOne: false
+      referencedRelation: "trip_instance_stop"
+      referencedColumns: ["operator_id","trip_instance_id","stop_sequence"]
     }
                   ]
                 },"tag": {
@@ -564,6 +610,64 @@ isOneToOne: false
       columns: ["operator_id","vehicle_id"]
 isOneToOne: false
       referencedRelation: "vehicle"
+      referencedColumns: ["operator_id","id"]
+    }
+                  ]
+                },"trip_instance_audience": {
+                  Row: {
+                    "audience_id": string,"can_see_map": boolean,"created_at": string,"operator_id": string,"trip_instance_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "audience_id": string,"can_see_map"?: boolean,"created_at"?: string,"operator_id": string,"trip_instance_id": string
+                  }
+                  Update: {
+                    "audience_id"?: string,"can_see_map"?: boolean,"created_at"?: string,"operator_id"?: string,"trip_instance_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "trip_instance_audience_operator_id_audience_id_fkey"
+      columns: ["operator_id","audience_id"]
+isOneToOne: false
+      referencedRelation: "audience"
+      referencedColumns: ["operator_id","id"]
+    },{
+      foreignKeyName: "trip_instance_audience_operator_id_trip_instance_id_fkey"
+      columns: ["operator_id","trip_instance_id"]
+isOneToOne: false
+      referencedRelation: "trip_instance"
+      referencedColumns: ["operator_id","id"]
+    }
+                  ]
+                },"trip_instance_stop": {
+                  Row: {
+                    "created_at": string,"operator_id": string,"planned_arrival": string | null,"planned_departure": string | null,"stop_id": string,"stop_sequence": number,"trip_instance_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"operator_id": string,"planned_arrival"?: string | null,"planned_departure"?: string | null,"stop_id": string,"stop_sequence": number,"trip_instance_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"operator_id"?: string,"planned_arrival"?: string | null,"planned_departure"?: string | null,"stop_id"?: string,"stop_sequence"?: number,"trip_instance_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "trip_instance_stop_operator_id_stop_id_fkey"
+      columns: ["operator_id","stop_id"]
+isOneToOne: false
+      referencedRelation: "stop"
+      referencedColumns: ["operator_id","id"]
+    },{
+      foreignKeyName: "trip_instance_stop_operator_id_stop_id_fkey"
+      columns: ["operator_id","stop_id"]
+isOneToOne: false
+      referencedRelation: "stop_location"
+      referencedColumns: ["operator_id","id"]
+    },{
+      foreignKeyName: "trip_instance_stop_operator_id_trip_instance_id_fkey"
+      columns: ["operator_id","trip_instance_id"]
+isOneToOne: false
+      referencedRelation: "trip_instance"
       referencedColumns: ["operator_id","id"]
     }
                   ]
@@ -716,14 +820,46 @@ isOneToOne: false
               "code": string,"invite_code_id": string
             }[]
                            },
+"delete_my_device":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"my_routes":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "active": boolean,
+"color": string | null,
+"created_at": string,
+"gtfs_id": string | null,
+"id": string,
+"name": NonNullable<Json>,
+"operator_id": string,
+"short_name": string | null,
+"sort_order": number,
+"text_color": string | null,
+"updated_at": string,
+"visibility": Database["public"]['Enums']["route_visibility"] | null
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "route"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "redeem_invite_code":
 { Args: { "p_code": string }; Returns: {
               "audience_id": string,"operator_id": string,"status": string
             }[]
+                           },
+"revoke_invite_code":
+{ Args: { "p_invite_code_id": string,"p_revoke_memberships"?: boolean }; Returns: number
+                           },
+"service_days":
+{ Args: { "p_from": string,"p_operator_id"?: string,"p_to": string }; Returns: {
+              "calendar_id": string,"national_holiday": Json,"operator_id": string,"service_date": string
+            }[]
                            }
           }
           Enums: {
-            "alert_kind": "approaching"|"passed"|"delayed"|"cancelled","alert_trigger": "minutes"|"stops","boarding_event_kind": "boarded"|"alighted"|"on_board_at_trip_end","calendar_exception_type": "added"|"removed","device_platform": "ios"|"android"|"web","route_recording_status": "recording"|"review"|"converted"|"discarded","route_visibility": "public"|"invited_map"|"invited_eta","shape_source": "recording"|"drawn"|"import","staff_role_kind": "owner"|"editor"|"driver","stop_event_state": "upcoming"|"approaching"|"arrived"|"departed"|"passed","trip_instance_kind": "scheduled"|"live","trip_instance_status": "planned"|"active"|"completed"|"cancelled","trip_started_by": "schedule"|"driver","vehicle_event_type": "tag_seen"|"tag_gone"|"tags_on_board"|"device_health"
+            "alert_kind": "approaching"|"passed"|"delayed"|"cancelled","alert_trigger": "minutes"|"stops","boarding_event_kind": "boarded"|"alighted"|"on_board_at_trip_end","calendar_exception_type": "added"|"removed","device_platform": "ios"|"android"|"web","post_category": "cancellation"|"delay"|"general"|"event","route_recording_status": "recording"|"review"|"converted"|"discarded","route_visibility": "public"|"invited_map"|"invited_eta","shape_source": "recording"|"drawn"|"import","staff_role_kind": "owner"|"editor"|"driver","stop_event_state": "upcoming"|"approaching"|"arrived"|"departed"|"passed","trip_instance_kind": "scheduled"|"live","trip_instance_status": "planned"|"active"|"completed"|"cancelled","trip_started_by": "schedule"|"driver","vehicle_event_type": "tag_seen"|"tag_gone"|"tags_on_board"|"device_health"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -839,7 +975,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "alert_kind": ["approaching", "passed", "delayed", "cancelled"],"alert_trigger": ["minutes", "stops"],"boarding_event_kind": ["boarded", "alighted", "on_board_at_trip_end"],"calendar_exception_type": ["added", "removed"],"device_platform": ["ios", "android", "web"],"route_recording_status": ["recording", "review", "converted", "discarded"],"route_visibility": ["public", "invited_map", "invited_eta"],"shape_source": ["recording", "drawn", "import"],"staff_role_kind": ["owner", "editor", "driver"],"stop_event_state": ["upcoming", "approaching", "arrived", "departed", "passed"],"trip_instance_kind": ["scheduled", "live"],"trip_instance_status": ["planned", "active", "completed", "cancelled"],"trip_started_by": ["schedule", "driver"],"vehicle_event_type": ["tag_seen", "tag_gone", "tags_on_board", "device_health"]
+            "alert_kind": ["approaching", "passed", "delayed", "cancelled"],"alert_trigger": ["minutes", "stops"],"boarding_event_kind": ["boarded", "alighted", "on_board_at_trip_end"],"calendar_exception_type": ["added", "removed"],"device_platform": ["ios", "android", "web"],"post_category": ["cancellation", "delay", "general", "event"],"route_recording_status": ["recording", "review", "converted", "discarded"],"route_visibility": ["public", "invited_map", "invited_eta"],"shape_source": ["recording", "drawn", "import"],"staff_role_kind": ["owner", "editor", "driver"],"stop_event_state": ["upcoming", "approaching", "arrived", "departed", "passed"],"trip_instance_kind": ["scheduled", "live"],"trip_instance_status": ["planned", "active", "completed", "cancelled"],"trip_started_by": ["schedule", "driver"],"vehicle_event_type": ["tag_seen", "tag_gone", "tags_on_board", "device_health"]
           }
         }
 } as const

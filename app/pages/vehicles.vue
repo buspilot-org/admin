@@ -1,7 +1,7 @@
 <script setup lang="ts">
-// Vehicles with their current state. The Traccar device ID decides whose bus
-// a tracker's positions belong to, so only the Buspilot team sets it (column
-// privilege in the schema); editors see it read-only.
+// Vehicles with their current state and drivers. The Traccar device ID
+// decides whose bus a tracker's positions belong to, so only the Buspilot team
+// sets it (column privilege in the schema); editors see it read-only.
 import type { Database } from '~/types/database.types'
 
 definePageMeta({ roles: ['owner', 'editor'] })
@@ -19,20 +19,26 @@ const notify = useNotify()
 const vehicles = shallowRef<VehicleRow[]>([])
 const states = shallowRef<StateRow[]>([])
 const activeTrips = shallowRef<{ id: string, status: string }[]>([])
+const drivers = shallowRef<string[]>([])
+const assignments = shallowRef<{ user_id: string, vehicle_id: string }[]>([])
 const now = ref(new Date())
+const user = useSupabaseUser()
 
 const { loading, error, reload } = useOperatorLoader(async (operatorId, isStale) => {
   now.value = new Date()
-  const [v, s] = await Promise.all([
+  const [v, s, d, dv] = await Promise.all([
     supabase.from('vehicle').select('*').eq('operator_id', operatorId).order('name'),
     supabase.from('vehicle_state').select('*').eq('operator_id', operatorId),
+    supabase.from('staff_role').select('user_id').eq('operator_id', operatorId).eq('role', 'driver').order('created_at'),
+    supabase.from('driver_vehicle').select('user_id, vehicle_id').eq('operator_id', operatorId),
   ])
   if (isStale()) return
-  if (v.error) throw v.error
-  if (s.error) throw s.error
-  vehicles.value = v.data
-  states.value = s.data
-  const tripIds = s.data.map(x => x.trip_instance_id).filter((id): id is string => !!id)
+  for (const res of [v, s, d, dv]) if (res.error) throw res.error
+  vehicles.value = v.data ?? []
+  states.value = s.data ?? []
+  drivers.value = (d.data ?? []).map(x => x.user_id)
+  assignments.value = dv.data ?? []
+  const tripIds = states.value.map(x => x.trip_instance_id).filter((id): id is string => !!id)
   if (tripIds.length > 0) {
     const ti = await supabase.from('trip_instance').select('id, status').in('id', tripIds)
     if (isStale()) return
@@ -56,6 +62,16 @@ function stateOf(v: VehicleRow) {
       : { label: t('vehicles.state.onTrip'), color: 'primary', detail }
   }
   return { label: t('vehicles.state.idle'), color: 'default', detail }
+}
+
+// Drivers
+const driversOf = (v: VehicleRow) => assignments.value.filter(a => a.vehicle_id === v.id).map(a => a.user_id)
+const driverLabel = (userId: string) => staffLabel(userId, user.value?.sub ?? null, { you: t('drivers.you'), driver: t('drivers.driver') })
+const driverDialog = ref(false)
+const driverVehicle = ref<VehicleRow | null>(null)
+function openDrivers(v: VehicleRow) {
+  driverVehicle.value = v
+  driverDialog.value = true
 }
 
 // Dialog
@@ -106,6 +122,7 @@ async function save() {
             <th>{{ t('vehicles.capacity') }}</th>
             <th>{{ t('vehicles.traccarId') }}</th>
             <th>{{ t('vehicles.stateLabel') }}</th>
+            <th>{{ t('drivers.title') }}</th>
             <th>{{ t('vehicles.active') }}</th>
             <th />
           </tr>
@@ -122,6 +139,13 @@ async function save() {
               <v-chip size="small" variant="tonal" :color="stateOf(v).color">{{ stateOf(v).label }}</v-chip>
               <div v-if="stateOf(v).detail" class="text-caption text-medium-emphasis">{{ stateOf(v).detail }}</div>
             </td>
+            <td>
+              <div class="d-flex flex-wrap align-center ga-1" data-testid="vehicle-drivers">
+                <v-chip v-for="d in driversOf(v)" :key="d" size="small" variant="tonal" prepend-icon="mdi-card-account-details-outline">{{ driverLabel(d) }}</v-chip>
+                <span v-if="driversOf(v).length === 0" class="text-caption text-medium-emphasis">{{ t('drivers.anyDriver') }}</span>
+                <v-btn size="small" variant="text" icon="mdi-account-edit" :aria-label="t('drivers.assign')" :title="t('drivers.assign')" data-testid="assign-drivers" @click="openDrivers(v)" />
+              </div>
+            </td>
             <td><v-icon :icon="v.active ? 'mdi-check' : 'mdi-minus'" :aria-label="v.active ? t('common.yes') : t('common.no')" /></td>
             <td class="text-right"><v-btn size="small" variant="text" icon="mdi-pencil" :aria-label="t('common.edit')" @click="openDialog(v)" /></td>
           </tr>
@@ -129,6 +153,8 @@ async function save() {
       </v-table>
     </v-card>
     <EmptyState v-else-if="!loading" icon="mdi-bus" :title="t('vehicles.empty')" />
+
+    <DriverVehicleDialog v-model="driverDialog" :vehicle="driverVehicle" :drivers="drivers" :assigned="driverVehicle ? driversOf(driverVehicle) : []" @saved="reload" />
 
     <v-dialog v-model="dialog" max-width="480">
       <v-card :title="editing ? t('vehicles.edit') : t('vehicles.new')">

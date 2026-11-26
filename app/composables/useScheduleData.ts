@@ -42,14 +42,21 @@ export function useScheduleData() {
     }
   }
 
-  return { loadSchedule }
+  /**
+   * The operator's calendars that run on a date, asked from the server
+   * (`service_days()`: weekdays, validity, exceptions and national holidays,
+   * as the scheduler decides).
+   */
+  async function calendarsRunningOn(operatorId: string, date: string): Promise<Set<string>> {
+    const { data, error } = await supabase.rpc('service_days', { p_from: date, p_to: date, p_operator_id: operatorId })
+    if (error) throw error
+    return new Set(data.map(d => d.calendar_id))
+  }
+
+  return { loadSchedule, calendarsRunningOn }
 }
 
-/** Trips that run on a date according to their calendar. */
-export function tripsOnDate(trips: readonly TripRow[], calendars: readonly CalendarRow[], date: string, holidays?: ReadonlySet<string>) {
-  const byId = new Map(calendars.map(c => [c.id, c]))
-  return trips.filter((trip) => {
-    const cal = byId.get(trip.service_calendar_id)
-    return cal ? runsOn(cal, cal.calendar_exception, date, holidays) : false
-  })
+/** Trips whose calendar runs (see calendarsRunningOn). */
+export function tripsOnDate(trips: readonly TripRow[], runningCalendarIds: ReadonlySet<string>) {
+  return trips.filter(trip => runningCalendarIds.has(trip.service_calendar_id))
 }
