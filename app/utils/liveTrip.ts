@@ -18,32 +18,27 @@ export interface PlannedStopForm {
   planned_departure: string | null
 }
 
-export interface StopChanges {
-  /** Sequences to delete, before anything else. */
+export interface StopPlan {
+  /** The form's stops in order, each with the stop_sequence to save it at (the full list for save_live_trip). */
+  stops: PlannedStop[]
+  /** Saved sequences the save removes: stops removed, moved or given another stop. */
   remove: number[]
-  /** Rows kept at their sequence whose times changed. */
-  update: PlannedStop[]
-  /** New rows (also rows moved or given another stop). */
-  insert: PlannedStop[]
-  /** For each entry of `insert`, its index in the desired list. */
-  insertedRows: number[]
 }
 
 /** Gap between sequences of new trips, so stops can be inserted later without renumbering. */
 export const SEQUENCE_STEP = 10
 
-const sameTime = (a: string | null, b: string | null) =>
-  a === b || (a !== null && b !== null && new Date(a).getTime() === new Date(b).getTime())
-
 /**
- * How to turn the saved planned stops into the form's list with the fewest
- * changes. A row keeps its stop_sequence (and the riders who follow it) when
- * its stop is unchanged and it stays in order; only its times are updated.
- * Rows that moved or got another stop are deleted and inserted at a free
- * sequence between their neighbours (the server forbids changing a planned
- * stop's position, and a follower must not end up at another stop).
+ * The stop_sequence of each row of the form, so that saving the list
+ * (save_live_trip matches planned stops by sequence) changes as few stops as
+ * possible. A row keeps its stop_sequence (and the riders who follow it) when
+ * its stop is unchanged and it stays in order; the server then only updates
+ * its times. Rows that moved or got another stop get a free sequence between
+ * their neighbours, so the server deletes the old row and inserts a new one
+ * (a planned stop cannot change position, and a follower must not end up at
+ * another stop).
  */
-export function planStopChanges(existing: readonly PlannedStop[], desired: readonly PlannedStopForm[]): StopChanges {
+export function planStops(existing: readonly PlannedStop[], desired: readonly PlannedStopForm[]): StopPlan {
   const bySeq = new Map(existing.map(s => [s.stop_sequence, s]))
 
   // Keep the most rows with an unchanged stop whose sequences still
@@ -104,23 +99,10 @@ export function planStopChanges(existing: readonly PlannedStop[], desired: reado
   }
 
   const keptSet = new Set(kept.filter((s): s is number => s !== null))
-  const remove = existing.map(s => s.stop_sequence).filter(seq => !keptSet.has(seq))
-  const update: PlannedStop[] = []
-  const insert: PlannedStop[] = []
-  const insertedRows: number[] = []
-  desired.forEach((row, idx) => {
-    const seq = seqs[idx]!
-    const planned = { stop_sequence: seq, stop_id: row.stop_id, planned_arrival: row.planned_arrival, planned_departure: row.planned_departure }
-    if (kept[idx] !== null) {
-      const old = bySeq.get(seq)!
-      if (!sameTime(old.planned_arrival, row.planned_arrival) || !sameTime(old.planned_departure, row.planned_departure)) update.push(planned)
-    }
-    else {
-      insert.push(planned)
-      insertedRows.push(idx)
-    }
-  })
-  return { remove, update, insert, insertedRows }
+  return {
+    stops: desired.map((row, idx) => ({ stop_sequence: seqs[idx]!, stop_id: row.stop_id, planned_arrival: row.planned_arrival, planned_departure: row.planned_departure })),
+    remove: existing.map(s => s.stop_sequence).filter(seq => !keptSet.has(seq)),
+  }
 }
 
 /** Indexes of a longest strictly increasing subsequence of the non-null values. */

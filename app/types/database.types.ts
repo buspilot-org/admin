@@ -335,14 +335,14 @@ isOneToOne: false
                   ]
                 },"route": {
                   Row: {
-                    "active": boolean,"color": string | null,"created_at": string,"gtfs_id": string | null,"id": string,"name": NonNullable<Json>,"operator_id": string,"short_name": string | null,"sort_order": number,"text_color": string | null,"updated_at": string,"visibility": Database["public"]['Enums']["route_visibility"] | null
+                    "active": boolean,"color": string | null,"created_at": string,"gtfs_id": string | null,"id": string,"name": NonNullable<Json>,"operator_id": string,"short_name": string | null,"slug": string | null,"sort_order": number,"text_color": string | null,"updated_at": string,"visibility": Database["public"]['Enums']["route_visibility"] | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "active"?: boolean,"color"?: string | null,"created_at"?: string,"gtfs_id"?: string | null,"id"?: string,"name": NonNullable<Json>,"operator_id": string,"short_name"?: string | null,"sort_order"?: number,"text_color"?: string | null,"updated_at"?: string,"visibility"?: Database["public"]['Enums']["route_visibility"] | null
+                    "active"?: boolean,"color"?: string | null,"created_at"?: string,"gtfs_id"?: string | null,"id"?: string,"name": NonNullable<Json>,"operator_id": string,"short_name"?: string | null,"slug"?: string | null,"sort_order"?: number,"text_color"?: string | null,"updated_at"?: string,"visibility"?: Database["public"]['Enums']["route_visibility"] | null
                   }
                   Update: {
-                    "active"?: boolean,"color"?: string | null,"created_at"?: string,"gtfs_id"?: string | null,"id"?: string,"name"?: NonNullable<Json>,"operator_id"?: string,"short_name"?: string | null,"sort_order"?: number,"text_color"?: string | null,"updated_at"?: string,"visibility"?: Database["public"]['Enums']["route_visibility"] | null
+                    "active"?: boolean,"color"?: string | null,"created_at"?: string,"gtfs_id"?: string | null,"id"?: string,"name"?: NonNullable<Json>,"operator_id"?: string,"short_name"?: string | null,"slug"?: string | null,"sort_order"?: number,"text_color"?: string | null,"updated_at"?: string,"visibility"?: Database["public"]['Enums']["route_visibility"] | null
                   }
                   Relationships: [
                     {
@@ -441,14 +441,14 @@ isOneToOne: false
                   ]
                 },"stop": {
                   Row: {
-                    "created_at": string,"gtfs_id": string | null,"id": string,"location": unknown,"name": NonNullable<Json>,"notes": Json | null,"operator_id": string,"updated_at": string
+                    "created_at": string,"gtfs_id": string | null,"id": string,"location": unknown,"name": NonNullable<Json>,"notes": Json | null,"operator_id": string,"slug": string | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"gtfs_id"?: string | null,"id"?: string,"location": unknown,"name": NonNullable<Json>,"notes"?: Json | null,"operator_id": string,"updated_at"?: string
+                    "created_at"?: string,"gtfs_id"?: string | null,"id"?: string,"location": unknown,"name": NonNullable<Json>,"notes"?: Json | null,"operator_id": string,"slug"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "created_at"?: string,"gtfs_id"?: string | null,"id"?: string,"location"?: unknown,"name"?: NonNullable<Json>,"notes"?: Json | null,"operator_id"?: string,"updated_at"?: string
+                    "created_at"?: string,"gtfs_id"?: string | null,"id"?: string,"location"?: unknown,"name"?: NonNullable<Json>,"notes"?: Json | null,"operator_id"?: string,"slug"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -833,6 +833,7 @@ isOneToOne: false
 "name": NonNullable<Json>,
 "operator_id": string,
 "short_name": string | null,
+"slug": string | null,
 "sort_order": number,
 "text_color": string | null,
 "updated_at": string,
@@ -851,6 +852,9 @@ isOneToOne: false
                            },
 "revoke_invite_code":
 { Args: { "p_invite_code_id": string,"p_revoke_memberships"?: boolean }; Returns: number
+                           },
+"save_live_trip":
+{ Args: { "p_audiences"?: Json,"p_operator_id"?: string,"p_route_id"?: string,"p_service_date"?: string,"p_stops"?: Json,"p_title"?: Json,"p_trip_id"?: string,"p_vehicle_id"?: string,"p_visible_until"?: string }; Returns: Json
                            },
 "service_days":
 { Args: { "p_from": string,"p_operator_id"?: string,"p_to": string }; Returns: {

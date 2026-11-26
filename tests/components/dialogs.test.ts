@@ -72,6 +72,103 @@ describe('LiveTripDialog', () => {
   })
 })
 
+describe('LiveTripDialog save', () => {
+  const trip = { id: 't1', service_date: '2026-11-26', title: { ja: '遠足' }, vehicle_id: 'v1', route_id: 'r-map', visible_until: null, status: 'planned' as const }
+  const savedStops = [
+    { stop_sequence: 10, stop_id: 's1', planned_arrival: '2026-11-26T01:00:00+00:00', planned_departure: null },
+    { stop_sequence: 20, stop_id: 's2', planned_arrival: '2026-11-26T02:00:00+00:00', planned_departure: null },
+  ]
+  const tables: Record<string, unknown> = {
+    trip_instance_stop: savedStops,
+    stop_event: [],
+    trip_instance_audience: [{ audience_id: 'a1', can_see_map: true }],
+  }
+
+  async function saveTrip(props: { audiences: typeof audiences | null, ownVehicleIds: string[] | null }) {
+    operatorState(['ja'])
+    fake = fakeSupabase(table => tables[table] ?? [])
+    const wrapper = await mountSuspended(LiveTripDialog, { props: { modelValue: true, trip, vehicles, routes, stops, ...props } })
+    await flushPromises()
+    ;(byTestId('live-save')[0] as HTMLButtonElement).click()
+    await flushPromises()
+    return wrapper
+  }
+
+  it('saves the whole form in one save_live_trip call', async () => {
+    const wrapper = await saveTrip({ audiences, ownVehicleIds: null })
+    expect(fake.client.rpc).toHaveBeenCalledTimes(1)
+    expect(fake.client.rpc).toHaveBeenCalledWith('save_live_trip', {
+      p_trip_id: 't1',
+      p_operator_id: 'op1',
+      p_title: { ja: '遠足' },
+      p_vehicle_id: 'v1',
+      p_route_id: 'r-map',
+      // Empty in the form: two hours after the last stop.
+      p_visible_until: '2026-11-26T04:00:00.000Z',
+      // The date of a saved trip does not change.
+      p_service_date: undefined,
+      // Unchanged stops keep their sequence (and their followers).
+      p_stops: savedStops.map(s => ({ ...s, planned_arrival: new Date(s.planned_arrival).toISOString() })),
+      p_audiences: [{ audience_id: 'a1', can_see_map: true }],
+    })
+    // No direct writes to the trip tables.
+    expect(fake.calls.filter(c => ['insert', 'update', 'upsert', 'delete'].includes(c.op))).toEqual([])
+    expect(wrapper.emitted('saved')).toHaveLength(1)
+    expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+  })
+
+  it('leaves the audiences alone for drivers', async () => {
+    await saveTrip({ audiences: null, ownVehicleIds: ['v1'] })
+    expect(fake.client.rpc).toHaveBeenCalledWith('save_live_trip', expect.objectContaining({ p_trip_id: 't1', p_audiences: undefined }))
+  })
+
+  it('warns before a save that re-creates a moved stop, then saves it at a new sequence', async () => {
+    operatorState(['ja'])
+    // Without times, so the new order is valid.
+    const untimed = savedStops.map(s => ({ ...s, planned_arrival: null }))
+    fake = fakeSupabase(table => (table === 'trip_instance_stop' ? untimed : tables[table] ?? []))
+    await mountSuspended(LiveTripDialog, { props: { modelValue: true, trip, vehicles, routes, stops, audiences, ownVehicleIds: null } })
+    await flushPromises()
+    // Move the second stop up: s2 keeps 20, s1 is re-created after it.
+    ;(byTestId('live-stop-row')[1]!.querySelector('[aria-label="Move up"]') as HTMLButtonElement).click()
+    await flushPromises()
+    ;(byTestId('live-save')[0] as HTMLButtonElement).click()
+    await flushPromises()
+    expect(fake.client.rpc).not.toHaveBeenCalled()
+    expect(byTestId('live-confirm-loss')[0]!.textContent).toContain('1 planned stop')
+    ;(byTestId('live-confirm-save')[0] as HTMLButtonElement).click()
+    await flushPromises()
+    const args = fake.client.rpc.mock.calls[0]!.at(1) as { p_stops: { stop_sequence: number, stop_id: string }[] }
+    expect(args.p_stops.map(s => [s.stop_sequence, s.stop_id])).toEqual([[20, 's2'], [30, 's1']])
+  })
+
+  it('does not save a trip whose saved plan could not be read', async () => {
+    operatorState(['ja'])
+    fake = fakeSupabase(table => tables[table] ?? [], { stop_event: { message: 'network' } })
+    await mountSuspended(LiveTripDialog, { props: { modelValue: true, trip, vehicles, routes, stops, audiences, ownVehicleIds: null } })
+    await flushPromises()
+    // Saving the empty lists would delete the saved stops and audiences.
+    expect((byTestId('live-save')[0] as HTMLButtonElement).disabled).toBe(true)
+    ;(byTestId('live-save')[0] as HTMLButtonElement).click()
+    await flushPromises()
+    expect(fake.client.rpc).not.toHaveBeenCalled()
+  })
+
+  it('keeps the dialog open with the form when the save fails', async () => {
+    operatorState(['ja'])
+    fake = fakeSupabase(table => tables[table] ?? [])
+    fake.client.rpc.mockResolvedValueOnce({ data: null, error: { message: 'live trip not found or not allowed', code: '42501' } } as never)
+    const wrapper = await mountSuspended(LiveTripDialog, { props: { modelValue: true, trip, vehicles, routes, stops, audiences, ownVehicleIds: null } })
+    await flushPromises()
+    ;(byTestId('live-save')[0] as HTMLButtonElement).click()
+    await flushPromises()
+    expect(wrapper.emitted('saved')).toBeUndefined()
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(useState<{ text: string }[]>('notices').value.at(-1)?.text).toContain('not allowed')
+    expect(byTestId('live-stop-row')).toHaveLength(2)
+  })
+})
+
 describe('DriverVehicleDialog', () => {
   it('inserts new assignments and deletes removed ones', async () => {
     operatorState(['ja'])

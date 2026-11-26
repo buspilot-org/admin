@@ -4,12 +4,15 @@ export interface Call { table: string, op: string, args: unknown[] }
 
 /**
  * A stand-in for the Supabase client: records every table call and resolves
- * with `{ data, error: null }`. Enough for components that only write.
+ * with `{ data, error: null }` (or `{ data: null, error }` for the tables in
+ * `errors`). Enough for components that only write.
  */
-export function fakeSupabase(data: unknown | ((table: string) => unknown) = []) {
+export function fakeSupabase(data: unknown | ((table: string) => unknown) = [], errors: Record<string, { message: string }> = {}) {
   const calls: Call[] = []
   const storageCalls: Call[] = []
-  const resultFor = (table: string) => ({ data: typeof data === 'function' ? (data as (t: string) => unknown)(table) : data, error: null })
+  const resultFor = (table: string) => errors[table]
+    ? { data: null, error: errors[table] }
+    : { data: typeof data === 'function' ? (data as (t: string) => unknown)(table) : data, error: null }
   const result = resultFor('')
   function builder(table: string) {
     const chain: Record<string, unknown> = {}

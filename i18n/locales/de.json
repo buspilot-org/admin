@@ -458,8 +458,6 @@
     "visibleUntilAuto": "Automatisch (2 Stunden nach dem letzten Halt)",
     "lossWarning": "{n} geplante Halte werden entfernt oder neu angelegt. Fahrgäste mit Ankunftshinweisen für diese Halte verlieren sie.",
     "saveAnyway": "Trotzdem speichern",
-    "unfinished": "Die Fahrt wurde angelegt, aber Halte oder Zielgruppen ließen sich nicht speichern. Erneut speichern oder die Fahrt verwerfen.",
-    "discard": "Fahrt löschen",
     "accessLossWarning": "Fahrgäste, die die Fahrt nach der Änderung von Linie oder Zielgruppen nicht mehr sehen, verlieren auch ihre Ankunftshinweise."
   }
 }
