@@ -206,11 +206,20 @@ const valid = computed(() =>
 // cannot read subscriptions, so the console warns whenever this happens.
 const pendingChanges = computed(() => planStopChanges(savedStops.value, plannedRows.value))
 const lostStops = computed(() => pendingChanges.value.remove.length)
+// Removing an audience or changing the route can also take the trip away from
+// riders who follow its stops (the server drops their subscriptions).
+const removedAudiences = computed(() => {
+  if (!props.audiences) return 0
+  const chosen = new Set(Object.entries(audienceForm.value).filter(([, a]) => a.on).map(([id]) => id))
+  return savedAudiences.value.filter(a => !chosen.has(a.audience_id)).length
+})
+const routeChanged = computed(() => !!props.trip && !!tripId.value && routeId.value !== props.trip.route_id)
+const accessLoss = computed(() => !!tripId.value && savedStops.value.length > 0 && (removedAudiences.value > 0 || routeChanged.value))
 
 async function save(confirmed = false) {
   const operatorId = op.currentId.value
   if (!valid.value || !operatorId) return
-  if (lostStops.value > 0 && !confirmed) {
+  if ((lostStops.value > 0 || accessLoss.value) && !confirmed) {
     confirmLoss.value = true
     return
   }
@@ -221,8 +230,24 @@ async function save(confirmed = false) {
     const values = {
       title: cleanI18nText(title.value)!,
       vehicle_id: vehicleId.value,
-      route_id: routeId.value,
       visible_until: visibleUntilIso.value,
+      // Only when it changes: a route change makes the server re-check who
+      // may still follow the trip's stops (and drop the others).
+      ...(isNew || routeChanged.value ? { route_id: routeId.value } : {}),
+    }
+    const chosen = props.audiences ? Object.entries(audienceForm.value).filter(([, a]) => a.on) : []
+    async function upsertAudiences(id: string) {
+      if (!props.audiences || chosen.length === 0) return
+      const { error } = await supabase.from('trip_instance_audience').upsert(
+        chosen.map(([audienceId, a]) => ({
+          operator_id: operatorId!,
+          trip_instance_id: id,
+          audience_id: audienceId,
+          can_see_map: effectiveMapPermission(a.map, routeVisibility.value),
+        })),
+        { onConflict: 'trip_instance_id,audience_id' },
+      )
+      if (error) throw error
     }
     if (isNew) {
       // The id is made here: reading the new row back in the same request
@@ -236,6 +261,8 @@ async function save(confirmed = false) {
       tripId.value = id
     }
     else {
+      // New audiences first, so a route change keeps their riders.
+      await upsertAudiences(tripId.value!)
       const { error } = await supabase.from('trip_instance').update(values).eq('id', tripId.value!)
       if (error) throw error
     }
@@ -246,19 +273,7 @@ async function save(confirmed = false) {
     // something away from riders (audiences, then planned stops with their
     // followers) come last, so a failure on the way loses as little as
     // possible, and saving again continues from the saved state.
-    const chosen = props.audiences ? Object.entries(audienceForm.value).filter(([, a]) => a.on) : []
-    if (props.audiences && chosen.length > 0) {
-      const { error } = await supabase.from('trip_instance_audience').upsert(
-        chosen.map(([audienceId, a]) => ({
-          operator_id: operatorId,
-          trip_instance_id: id,
-          audience_id: audienceId,
-          can_see_map: effectiveMapPermission(a.map, routeVisibility.value),
-        })),
-        { onConflict: 'trip_instance_id,audience_id' },
-      )
-      if (error) throw error
-    }
+    if (isNew) await upsertAudiences(id)
     const changes = planStopChanges(savedStops.value, plannedRows.value)
     for (const u of changes.update) {
       const { error } = await supabase
@@ -275,6 +290,12 @@ async function save(confirmed = false) {
         .from('trip_instance_stop')
         .insert(changes.insert.map(st => ({ ...st, operator_id: operatorId, trip_instance_id: id })))
       if (error) throw error
+      // These rows are saved now: if a later step fails, saving again must
+      // keep them, not insert them once more.
+      changes.insertedRows.forEach((rowIndex, k) => {
+        const row = stopRows.value[rowIndex]
+        if (row) row.origin = changes.insert[k]!.stop_sequence
+      })
     }
     if (props.audiences) {
       const { remove } = diffIds(savedAudiences.value.map(a => a.audience_id), chosen.map(([audienceId]) => audienceId))
@@ -437,7 +458,8 @@ const timeErrorText = (e: StopTimeError | null | undefined) => (e ? t(`live.erro
         />
       </v-card-text>
       <v-alert v-if="confirmLoss" type="warning" variant="tonal" density="compact" class="mx-4" data-testid="live-confirm-loss">
-        {{ t('live.lossWarning', { n: lostStops }) }}
+        <template v-if="lostStops > 0">{{ t('live.lossWarning', { n: lostStops }) }}</template>
+        <template v-if="accessLoss"> {{ t('live.accessLossWarning') }}</template>
         <template #append>
           <v-btn size="small" variant="text" @click="confirmLoss = false">{{ t('common.cancel') }}</v-btn>
           <v-btn size="small" color="warning" variant="flat" :loading="busy" data-testid="live-confirm-save" @click="save(true)">{{ t('live.saveAnyway') }}</v-btn>

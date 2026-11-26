@@ -1,6 +1,7 @@
 // Live (one-off) trips: planned stops, audiences and their checks.
 
-import { formatTimeOfDay, parseTimeOfDay, zonedInstant } from './time'
+import { daysInRange } from './calendar'
+import { dateInTimeZone, formatClock, formatTimeOfDay, parseTimeOfDay, zonedInstant } from './time'
 
 export interface PlannedStop {
   stop_sequence: number
@@ -24,6 +25,8 @@ export interface StopChanges {
   update: PlannedStop[]
   /** New rows (also rows moved or given another stop). */
   insert: PlannedStop[]
+  /** For each entry of `insert`, its index in the desired list. */
+  insertedRows: number[]
 }
 
 /** Gap between sequences of new trips, so stops can be inserted later without renumbering. */
@@ -104,6 +107,7 @@ export function planStopChanges(existing: readonly PlannedStop[], desired: reado
   const remove = existing.map(s => s.stop_sequence).filter(seq => !keptSet.has(seq))
   const update: PlannedStop[] = []
   const insert: PlannedStop[] = []
+  const insertedRows: number[] = []
   desired.forEach((row, idx) => {
     const seq = seqs[idx]!
     const planned = { stop_sequence: seq, stop_id: row.stop_id, planned_arrival: row.planned_arrival, planned_departure: row.planned_departure }
@@ -113,9 +117,10 @@ export function planStopChanges(existing: readonly PlannedStop[], desired: reado
     }
     else {
       insert.push(planned)
+      insertedRows.push(idx)
     }
   })
-  return { remove, update, insert }
+  return { remove, update, insert, insertedRows }
 }
 
 /** Indexes of a longest strictly increasing subsequence of the non-null values. */
@@ -211,9 +216,13 @@ export function plannedInstant(input: string, serviceDate: string, timeZone: str
  */
 export function plannedInput(iso: string | null, serviceDate: string, timeZone: string): string {
   if (!iso) return ''
-  const total = Math.round((new Date(iso).getTime() - zonedInstant(serviceDate, 0, timeZone).getTime()) / 1000)
-  if (total < 0) return ''
-  const seconds = total % 60
-  const hhmm = formatTimeOfDay(total - seconds)
+  // Wall-clock time on the instant's local date, plus whole days after the
+  // service date (as plannedInstant reads it, also on DST change days).
+  const instant = new Date(iso)
+  const days = daysInRange(serviceDate, dateInTimeZone(instant, timeZone)) - 1
+  if (days < 0) return ''
+  const [h, m] = formatClock(instant, timeZone).split(':').map(Number) as [number, number]
+  const seconds = instant.getUTCSeconds()
+  const hhmm = formatTimeOfDay(days * 86_400 + h * 3600 + m * 60)
   return seconds ? `${hhmm}:${String(seconds).padStart(2, '0')}` : hhmm
 }

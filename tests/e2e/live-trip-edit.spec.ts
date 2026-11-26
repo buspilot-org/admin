@@ -188,6 +188,7 @@ test.describe('what RLS refuses', () => {
       headers: { 'Content-Type': 'image/png' },
       body: png,
     })
+    if (res.ok) await api('/storage/v1/object/operator-branding', { method: 'DELETE', body: JSON.stringify({ prefixes: [`${OPERATOR_ID}/logo-e2e-editor.png`] }) })
     expect(res.status).toBeGreaterThanOrEqual(400)
     const listed = await api('/storage/v1/object/list/operator-branding', { method: 'POST', body: JSON.stringify({ prefix: OPERATOR_ID, limit: 100 }) }) as { name: string }[]
     expect(listed.map(f => f.name)).not.toContain('logo-e2e-editor.png')

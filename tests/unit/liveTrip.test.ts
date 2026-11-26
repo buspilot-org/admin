@@ -28,11 +28,12 @@ describe('planStopChanges', () => {
         { stop_sequence: 10, stop_id: 'a', planned_arrival: null, planned_departure: null },
         { stop_sequence: 20, stop_id: 'b', planned_arrival: null, planned_departure: null },
       ],
+      insertedRows: [0, 1],
     })
   })
 
   it('does nothing when nothing changed', () => {
-    expect(planStopChanges(saved, saved.map(asForm))).toEqual({ remove: [], update: [], insert: [] })
+    expect(planStopChanges(saved, saved.map(asForm))).toEqual({ remove: [], update: [], insert: [], insertedRows: [] })
   })
 
   it('updates times in place, keeping the sequence (and its followers)', () => {
@@ -42,6 +43,7 @@ describe('planStopChanges', () => {
       remove: [],
       update: [{ stop_sequence: 20, stop_id: 'b', planned_arrival: at('02:10'), planned_departure: null }],
       insert: [],
+      insertedRows: [],
     })
   })
 
@@ -73,6 +75,7 @@ describe('planStopChanges', () => {
     expect(changes.remove).toEqual([40])
     expect(changes.update).toEqual([])
     expect(changes.insert.map(s => [s.stop_sequence, s.stop_id])).toEqual([[4, 'd']])
+    expect(changes.insertedRows).toEqual([0])
   })
 
   it('re-creates only the moved stop when the first one moves to the end', () => {
@@ -184,6 +187,14 @@ describe('planned times', () => {
     expect(plannedInput('2026-11-26T01:30:00.000Z', '2026-11-26', 'Asia/Tokyo')).toBe('10:30')
     expect(plannedInput('2026-11-26T16:10:00.000Z', '2026-11-26', 'Asia/Tokyo')).toBe('25:10')
     expect(plannedInput(null, '2026-11-26', 'Asia/Tokyo')).toBe('')
+    // On daylight-saving change days the form shows the wall-clock time it
+    // was entered as, so an untouched stop is not rewritten an hour off.
+    for (const date of ['2026-03-29', '2026-10-25']) {
+      const iso = plannedInstant('10:00', date, 'Europe/Berlin')!
+      expect(plannedInput(iso, date, 'Europe/Berlin')).toBe('10:00')
+      const late = plannedInstant('25:30', date, 'Europe/Berlin')!
+      expect(plannedInput(late, date, 'Europe/Berlin')).toBe('25:30')
+    }
     // Seconds survive, so an unchanged time is not rewritten.
     expect(plannedInput('2026-11-26T01:30:15.000Z', '2026-11-26', 'Asia/Tokyo')).toBe('10:30:15')
   })
