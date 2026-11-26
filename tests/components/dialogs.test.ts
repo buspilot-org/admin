@@ -122,6 +122,38 @@ describe('LiveTripDialog save', () => {
     expect(fake.client.rpc).toHaveBeenCalledWith('save_live_trip', expect.objectContaining({ p_trip_id: 't1', p_audiences: undefined }))
   })
 
+  it('warns before a save that re-creates a moved stop, then saves it at a new sequence', async () => {
+    operatorState(['ja'])
+    // Without times, so the new order is valid.
+    const untimed = savedStops.map(s => ({ ...s, planned_arrival: null }))
+    fake = fakeSupabase(table => (table === 'trip_instance_stop' ? untimed : tables[table] ?? []))
+    await mountSuspended(LiveTripDialog, { props: { modelValue: true, trip, vehicles, routes, stops, audiences, ownVehicleIds: null } })
+    await flushPromises()
+    // Move the second stop up: s2 keeps 20, s1 is re-created after it.
+    ;(byTestId('live-stop-row')[1]!.querySelector('[aria-label="Move up"]') as HTMLButtonElement).click()
+    await flushPromises()
+    ;(byTestId('live-save')[0] as HTMLButtonElement).click()
+    await flushPromises()
+    expect(fake.client.rpc).not.toHaveBeenCalled()
+    expect(byTestId('live-confirm-loss')[0]!.textContent).toContain('1 planned stop')
+    ;(byTestId('live-confirm-save')[0] as HTMLButtonElement).click()
+    await flushPromises()
+    const args = fake.client.rpc.mock.calls[0]!.at(1) as { p_stops: { stop_sequence: number, stop_id: string }[] }
+    expect(args.p_stops.map(s => [s.stop_sequence, s.stop_id])).toEqual([[20, 's2'], [30, 's1']])
+  })
+
+  it('does not save a trip whose saved plan could not be read', async () => {
+    operatorState(['ja'])
+    fake = fakeSupabase(table => tables[table] ?? [], { stop_event: { message: 'network' } })
+    await mountSuspended(LiveTripDialog, { props: { modelValue: true, trip, vehicles, routes, stops, audiences, ownVehicleIds: null } })
+    await flushPromises()
+    // Saving the empty lists would delete the saved stops and audiences.
+    expect((byTestId('live-save')[0] as HTMLButtonElement).disabled).toBe(true)
+    ;(byTestId('live-save')[0] as HTMLButtonElement).click()
+    await flushPromises()
+    expect(fake.client.rpc).not.toHaveBeenCalled()
+  })
+
   it('keeps the dialog open with the form when the save fails', async () => {
     operatorState(['ja'])
     fake = fakeSupabase(table => tables[table] ?? [])

@@ -142,6 +142,9 @@ test.describe('editing a live trip', () => {
         p_trip_id: tripId,
         p_title: { ja: `${title} 変更` },
         p_vehicle_id: VEHICLE_ID,
+        // The saved values (null), so only the stop removal could fail.
+        p_route_id: null,
+        p_visible_until: null,
         p_stops: [
           { stop_sequence: 20, stop_id: STOPS.sannomiya, planned_arrival: jst('09:20') },
           { stop_sequence: 30, stop_id: STOPS.shinKobe, planned_arrival: jst('09:40') },
@@ -149,6 +152,7 @@ test.describe('editing a live trip', () => {
       }),
     })
     expect(save.status).toBe(400)
+    expect((await save.json()).message).toContain('cannot be removed from the plan')
     const [trip] = await select<{ title: { ja: string } }>('trip_instance', `id=eq.${tripId}&select=title`)
     expect(trip!.title.ja).toBe(title)
     const stops = await select<{ stop_sequence: number }>('trip_instance_stop', `trip_instance_id=eq.${tripId}&select=stop_sequence&order=stop_sequence`)

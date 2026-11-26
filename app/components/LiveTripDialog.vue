@@ -46,6 +46,9 @@ const audienceForm = ref<Record<string, AudienceForm>>({})
 const savedStops = shallowRef<PlannedStop[]>([])
 const savedAudiences = shallowRef<{ audience_id: string, can_see_map: boolean }[]>([])
 const loadingPlan = ref(false)
+// Whether the saved plan of an existing trip was read. A save sends the full
+// lists of stops and audiences, so without the saved ones it would delete them.
+const planLoaded = ref(false)
 // The route as saved (set on open).
 const savedRouteId = ref<string | null>(null)
 // Shown before a save that removes or re-creates planned stops.
@@ -80,6 +83,7 @@ watch(open, async (isOpen) => {
   audienceForm.value = emptyAudiences()
   savedStops.value = []
   savedAudiences.value = []
+  planLoaded.value = false
   if (tr) await loadPlan(tr.id)
   else stopRows.value = [newRow(), newRow()]
 }, { immediate: true })
@@ -107,6 +111,7 @@ async function loadPlan(id: string) {
   if (failed?.error) return notify.error(failed.error)
   savedStops.value = st.data ?? []
   savedAudiences.value = au?.data ?? []
+  planLoaded.value = true
   const reached = new Set((ev.data ?? []).filter(e => e.state !== 'upcoming' && e.state !== 'approaching').map(e => e.stop_sequence))
   stopRows.value = savedStops.value.map(s => ({
     key: nextKey++,
@@ -193,7 +198,7 @@ const valid = computed(() =>
   && stopRows.value.every(r => !!r.stopId)
   && timeErrors.value.every(e => e === null)
   && !visibleUntilError.value
-  && (!!tripId.value || serviceDate.value >= today.value),
+  && (tripId.value ? planLoaded.value : serviceDate.value >= today.value),
 )
 
 // The planned stops to save, with their sequences. Stops that the save
