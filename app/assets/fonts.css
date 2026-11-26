@@ -1,0 +1,28 @@
+/*
+ * M PLUS Rounded 1c, self-hosted from public/fonts/ (SIL Open Font License
+ * 1.1, see public/fonts/OFL.txt). Never load it from Google Fonts: no
+ * requests to a third party.
+ */
+@font-face {
+  font-family: "M PLUS Rounded 1c";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/MPLUSRounded1c-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "M PLUS Rounded 1c";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/MPLUSRounded1c-Bold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "M PLUS Rounded 1c";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("/fonts/MPLUSRounded1c-ExtraBold.woff2") format("woff2");
+}

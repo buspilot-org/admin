@@ -92,3 +92,5 @@ Every pull request gets at least one thorough self-review before merge; see the 
 ## License
 
 [GNU Affero General Public License v3.0](LICENSE)
+
+The Buspilot name, logo, icons and brand colours (`public/favicon.*`, `public/apple-touch-icon.png`, `public/icon-*.png`, `app/assets/brand/`) are not covered by this licence. All rights reserved; forks must replace them. The M PLUS Rounded 1c font in `public/fonts/` is licensed under the [SIL Open Font License 1.1](public/fonts/OFL.txt).

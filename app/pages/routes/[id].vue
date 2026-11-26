@@ -130,7 +130,7 @@ const visibility = computed(() => route.value?.visibility ?? op.operator.value?.
           </v-col>
           <v-col cols="12" lg="7">
             <ClientOnly>
-              <RouteMap :line="line" :stops="mapStops" :color="route.color ?? '1E6FD9'" />
+              <RouteMap :line="line" :stops="mapStops" :color="route.color ?? DEFAULT_COLOR" />
             </ClientOnly>
             <div v-if="!line" class="text-caption text-medium-emphasis mt-2">{{ t('routes.noShape') }}</div>
           </v-col>

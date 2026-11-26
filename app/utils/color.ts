@@ -1,5 +1,8 @@
 // WCAG 2 contrast, for the operator and route colours.
 
+/** Default operator and route colour: the Buspilot brand colour (asagi). */
+export const DEFAULT_COLOR = '00777F'
+
 /** "1E6FD9" or "#1e6fd9" → "1E6FD9"; null if not a 6-digit hex colour. */
 export function normalizeHex(input: string | null | undefined): string | null {
   if (!input) return null

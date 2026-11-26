@@ -11,6 +11,9 @@ export function useThemeMode() {
   function apply(next: ThemeMode) {
     mode.value = next
     theme.change(next)
+    // The brand tokens (--bp-*) follow the system unless data-theme is set.
+    if (next === 'system') delete document.documentElement.dataset.theme
+    else document.documentElement.dataset.theme = next
     try {
       localStorage.setItem(KEY, next)
     }

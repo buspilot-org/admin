@@ -22,7 +22,7 @@ async function signOut() {
   <v-navigation-drawer v-model="drawer" :width="232">
     <div class="pa-4 d-flex align-center ga-2">
       <img src="/favicon.svg" alt="" width="28" height="28">
-      <span class="text-h6">Buspilot</span>
+      <span class="text-h6 brand-wordmark">Buspilot</span>
     </div>
     <v-list nav density="comfortable">
       <v-list-item

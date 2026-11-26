@@ -7,6 +7,7 @@ import { Map as MapLibreMap, NavigationControl, setWorkerUrl, type GeoJSONSource
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?url'
 import type { LngLat } from '~/utils/wkb'
 import { bbox } from '~/utils/wkb'
+import { DEFAULT_COLOR } from '~/utils/color'
 
 export interface MapStop {
   sequence: number
@@ -19,7 +20,7 @@ const props = withDefaults(defineProps<{
   stops: MapStop[]
   color?: string
   height?: string
-}>(), { color: '1E6FD9', height: '420px' })
+}>(), { color: DEFAULT_COLOR, height: '420px' })
 
 const { t } = useI18n()
 const config = useRuntimeConfig()
