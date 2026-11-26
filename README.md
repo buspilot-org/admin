@@ -55,14 +55,14 @@ Emails go to Mailpit (<http://127.0.0.1:55324>): the sign-in email carries the 6
 
 ### End-to-end tests
 
-The Playwright tests sign in as a test owner and a test driver of the demo school, open the demo route and create an invite code. They create the test accounts with the local secret key and delete the invite codes they made:
+The Playwright tests run against the demo school of the local seed. They create three test accounts with the local secret key (an owner whose session global setup makes with an admin code, a second owner that signs in through the login page, and a driver), then: sign in, open the demo route, create an invite code; create a post with a category; revoke a code together with a rider's membership; upload a logo; assign the driver to a vehicle; create, edit and cancel a live trip with planned stops and an audience. Everything they create is labelled `e2e …` (or belongs to the test accounts) and removed afterwards, so they can run against a local database that other work uses too.
 
 ```bash
 pnpm exec playwright install chromium
 SUPABASE_SECRET_KEY=$(cd ../server && npx supabase status -o json | jq -r .SECRET_KEY) pnpm test:e2e
 ```
 
-They build and start the console unless one already runs on port 3100 (or set `E2E_BASE_URL`).
+They build and start the console unless one already runs on port 3100 (or set `E2E_BASE_URL`). A local Supabase serves Storage over http, which `operator.branding` rejects (https URLs only), so locally the logo test checks the upload and the console's warning instead of saving.
 
 ### Configuration
 

@@ -74,6 +74,12 @@ watch(open, async (isOpen) => {
   else stopRows.value = [newRow(), newRow()]
 }, { immediate: true })
 
+// Audiences can arrive or change after the form was filled (the page
+// reloads); every listed audience needs a form entry.
+watch(() => props.audiences, (list) => {
+  for (const a of list ?? []) audienceForm.value[a.id] ??= { on: false, map: false }
+}, { immediate: true })
+
 function newRow(): StopForm {
   return { key: nextKey++, origin: null, stopId: null, arrival: '', departure: '', locked: false }
 }
@@ -179,13 +185,15 @@ async function save() {
       visible_until: visibleUntilIso.value,
     }
     if (!tripId.value) {
-      const { data, error } = await supabase
+      // The id is made here: reading the new row back in the same request
+      // (INSERT … RETURNING) fails the select policy, whose
+      // trip_instance_access(id) does not see the row yet (server follow-up).
+      const id = crypto.randomUUID()
+      const { error } = await supabase
         .from('trip_instance')
-        .insert({ ...values, operator_id: operatorId, service_date: serviceDate.value, kind: 'live', started_by: 'driver' })
-        .select('id')
-        .single()
+        .insert({ ...values, id, operator_id: operatorId, service_date: serviceDate.value, kind: 'live', started_by: 'driver' })
       if (error) throw error
-      tripId.value = data.id
+      tripId.value = id
     }
     else {
       const { error } = await supabase.from('trip_instance').update(values).eq('id', tripId.value)
@@ -321,15 +329,16 @@ const timeErrorText = (e: StopTimeError | null | undefined) => (e ? t(`live.erro
         <template v-if="audiences">
           <p class="text-caption text-medium-emphasis mb-2">{{ routeId ? t('live.audiencesWithRoute') : t('live.audiencesHint') }}</p>
           <v-alert v-if="mapCapped" type="info" variant="tonal" density="compact" class="mb-2">{{ t('live.mapCapped') }}</v-alert>
-          <div v-for="a in audiences" :key="a.id" class="d-flex flex-wrap align-center ga-4" data-testid="live-audience">
+          <div v-for="a in audiences.filter(x => audienceForm[x.id])" :key="a.id" class="d-flex flex-wrap align-center ga-4" data-testid="live-audience">
             <v-checkbox v-model="audienceForm[a.id]!.on" :label="text(a.name)" density="compact" hide-details style="min-width: 220px" />
             <v-switch
-              v-model="audienceForm[a.id]!.map"
+              :model-value="audienceForm[a.id]!.map && !mapCapped"
               :label="t('live.canSeeMap')"
               :disabled="!audienceForm[a.id]!.on || mapCapped"
               color="primary"
               density="compact"
               hide-details
+              @update:model-value="v => (audienceForm[a.id]!.map = !!v)"
             />
           </div>
           <p v-if="audiences.length === 0" class="text-body-2 text-medium-emphasis">{{ t('live.noAudiences') }}</p>

@@ -171,7 +171,7 @@ function liveTimes(inst: InstanceRow) {
   const planned = plannedOf(inst.id)
   const first = planned[0]
   const last = planned[planned.length - 1]
-  const from = first?.planned_departure ?? first?.planned_arrival
+  const from = first?.planned_arrival ?? first?.planned_departure
   const to = last?.planned_arrival ?? last?.planned_departure
   if (!from && !to) return '—'
   const fmt = (iso: string | null | undefined) => (iso ? plannedInput(iso, inst.service_date, op.timezone.value) : '')

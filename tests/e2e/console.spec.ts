@@ -1,23 +1,12 @@
 import { expect, test } from '@playwright/test'
-import type { Page } from '@playwright/test'
-import { deleteTestInviteCodes, E2E_DRIVER_EMAIL, E2E_EMAIL, E2E_LABEL_PREFIX, oneTimeCode } from './local-supabase'
-
-async function signIn(page: Page, email: string) {
-  await page.goto('/')
-  await expect(page).toHaveURL(/\/login/)
-  await page.getByLabel('メールアドレス').fill(email)
-  await page.getByRole('button', { name: 'コードを送信' }).click()
-  await expect(page.getByLabel('ワンタイムコード')).toBeVisible()
-  await page.getByLabel('ワンタイムコード').fill(await oneTimeCode(email))
-  await page.getByRole('button', { name: 'ログイン' }).click()
-  await expect(page.getByRole('heading', { name: '今日の運行' })).toBeVisible()
-}
+import { deleteTestInviteCodes, E2E_DRIVER_EMAIL, E2E_LABEL_PREFIX, E2E_LOGIN_EMAIL } from './local-supabase'
+import { signIn } from './sign-in'
 
 test.afterAll(deleteTestInviteCodes)
 
 test('sign in, see the demo route, create an invite code', async ({ page }) => {
   // Sign in with an email one-time code; Today, for the demo school.
-  await signIn(page, E2E_EMAIL)
+  await signIn(page, E2E_LOGIN_EMAIL)
   await expect(page.getByTestId('operator-name')).toHaveText('北野デモ国際学校')
 
   // The demo route: a loop that serves Kitano-zaka twice.
