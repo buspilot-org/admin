@@ -397,7 +397,8 @@
       "type": "Choose a PNG, JPEG or WebP image.",
       "size": "Choose an image of at most 2 MB."
     },
-    "httpsOnly": "The image address is not https, so it cannot be saved (a local Supabase serves Storage over http)."
+    "httpsOnly": "The image address is not https, so it cannot be saved (a local Supabase serves Storage over http).",
+    "conflict": "The settings were changed elsewhere. The latest version is loaded; make your change again and save."
   },
   "drivers": {
     "title": "Drivers",
@@ -454,6 +455,11 @@
       "date_past": "The date cannot be in the past"
     },
     "today": "Today",
-    "visibleUntilAuto": "Automatic (2 hours after the last stop)"
+    "visibleUntilAuto": "Automatic (2 hours after the last stop)",
+    "lossWarning": "{n} planned stops will be removed or re-created. Riders who set arrival alerts for them lose those alerts.",
+    "saveAnyway": "Save anyway",
+    "unfinished": "The trip was created, but its stops or audiences could not be saved. Save again, or discard the trip.",
+    "discard": "Delete this trip",
+    "accessLossWarning": "Riders who no longer see the trip after the route or audience change also lose their arrival alerts."
   }
 }

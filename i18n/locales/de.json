@@ -397,7 +397,8 @@
       "type": "Bitte ein PNG-, JPEG- oder WebP-Bild wählen.",
       "size": "Bitte ein Bild bis 2 MB wählen."
     },
-    "httpsOnly": "Die Bildadresse ist kein https und lässt sich nicht speichern (ein lokales Supabase liefert Storage über http)."
+    "httpsOnly": "Die Bildadresse ist kein https und lässt sich nicht speichern (ein lokales Supabase liefert Storage über http).",
+    "conflict": "Die Einstellungen wurden anderswo geändert. Der neueste Stand ist geladen; bitte erneut ändern und speichern."
   },
   "drivers": {
     "title": "Fahrer",
@@ -454,6 +455,11 @@
       "date_past": "Das Datum darf nicht in der Vergangenheit liegen"
     },
     "today": "Heute",
-    "visibleUntilAuto": "Automatisch (2 Stunden nach dem letzten Halt)"
+    "visibleUntilAuto": "Automatisch (2 Stunden nach dem letzten Halt)",
+    "lossWarning": "{n} geplante Halte werden entfernt oder neu angelegt. Fahrgäste mit Ankunftshinweisen für diese Halte verlieren sie.",
+    "saveAnyway": "Trotzdem speichern",
+    "unfinished": "Die Fahrt wurde angelegt, aber Halte oder Zielgruppen ließen sich nicht speichern. Erneut speichern oder die Fahrt verwerfen.",
+    "discard": "Fahrt löschen",
+    "accessLossWarning": "Fahrgäste, die die Fahrt nach der Änderung von Linie oder Zielgruppen nicht mehr sehen, verlieren auch ihre Ankunftshinweise."
   }
 }

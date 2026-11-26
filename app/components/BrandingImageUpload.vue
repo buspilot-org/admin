@@ -3,12 +3,13 @@
 // (owners only, PNG/JPEG/WebP up to 2 MiB; checked here before the upload
 // and again by Storage). Each upload is a new file, so the image the apps
 // show does not change until the owner saves; the public URL goes into
-// v-model, and saving the settings stores it and deletes unused files.
+// v-model, and saving the settings stores it and deletes the replaced file.
 import type { Database } from '~/types/database.types'
 import type { BrandingImageError, BrandingImageKind } from '~/utils/branding'
 
 const props = defineProps<{ kind: BrandingImageKind, operatorId: string, label: string }>()
 const url = defineModel<string | null>({ required: true })
+const emit = defineEmits<{ uploaded: [path: string] }>()
 
 const { t } = useI18n()
 const supabase = useSupabaseClient<Database>()
@@ -25,12 +26,19 @@ async function onFile(event: Event) {
   if (!file) return
   fileError.value = checkBrandingImage(file)
   if (fileError.value) return
-  const path = brandingObjectPath(props.operatorId, props.kind, file.type, Date.now())
+  // The content must be the image type the name claims.
+  const type = sniffImageType(new Uint8Array(await file.slice(0, 12).arrayBuffer()))
+  if (type !== file.type) {
+    fileError.value = 'type'
+    return
+  }
+  const path = brandingObjectPath(props.operatorId, props.kind, type, Date.now())
   const storage = supabase.storage.from(BRANDING_BUCKET)
   busy.value = true
   const { error } = await storage.upload(path, file, { contentType: file.type, cacheControl: '31536000' })
   busy.value = false
   if (error) return notify.error(error)
+  emit('uploaded', path)
   url.value = storage.getPublicUrl(path).data.publicUrl
 }
 

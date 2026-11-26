@@ -25,6 +25,8 @@ export interface StopChanges {
   update: PlannedStop[]
   /** New rows (also rows moved or given another stop). */
   insert: PlannedStop[]
+  /** For each entry of `insert`, its index in the desired list. */
+  insertedRows: number[]
 }
 
 /** Gap between sequences of new trips, so stops can be inserted later without renumbering. */
@@ -44,19 +46,22 @@ const sameTime = (a: string | null, b: string | null) =>
 export function planStopChanges(existing: readonly PlannedStop[], desired: readonly PlannedStopForm[]): StopChanges {
   const bySeq = new Map(existing.map(s => [s.stop_sequence, s]))
 
-  // Keep rows with an unchanged stop as long as their sequences increase.
-  const kept: (number | null)[] = []
-  let last = -1
-  for (const row of desired) {
+  // Keep the most rows with an unchanged stop whose sequences still
+  // increase in the new order (longest increasing subsequence), so moving
+  // one stop re-creates only that stop ("A B C D" → "D A B C" keeps A, B, C).
+  const candidate: (number | null)[] = desired.map((row) => {
     const old = row.origin !== null ? bySeq.get(row.origin) : undefined
-    if (old && old.stop_id === row.stop_id && old.stop_sequence > last && !kept.includes(old.stop_sequence)) {
-      kept.push(old.stop_sequence)
-      last = old.stop_sequence
-    }
-    else {
-      kept.push(null)
-    }
-  }
+    return old && old.stop_id === row.stop_id ? old.stop_sequence : null
+  })
+  // A saved row listed twice can be kept only once.
+  const seen = new Set<number>()
+  candidate.forEach((seq, idx) => {
+    if (seq === null) return
+    if (seen.has(seq)) candidate[idx] = null
+    else seen.add(seq)
+  })
+  const kept: (number | null)[] = desired.map(() => null)
+  for (const idx of longestIncreasing(candidate)) kept[idx] = candidate[idx]!
 
   // New rows need free sequences between the kept ones around them. No
   // sequence of the saved plan is reused in the same save (also not one
@@ -102,6 +107,7 @@ export function planStopChanges(existing: readonly PlannedStop[], desired: reado
   const remove = existing.map(s => s.stop_sequence).filter(seq => !keptSet.has(seq))
   const update: PlannedStop[] = []
   const insert: PlannedStop[] = []
+  const insertedRows: number[] = []
   desired.forEach((row, idx) => {
     const seq = seqs[idx]!
     const planned = { stop_sequence: seq, stop_id: row.stop_id, planned_arrival: row.planned_arrival, planned_departure: row.planned_departure }
@@ -111,9 +117,34 @@ export function planStopChanges(existing: readonly PlannedStop[], desired: reado
     }
     else {
       insert.push(planned)
+      insertedRows.push(idx)
     }
   })
-  return { remove, update, insert }
+  return { remove, update, insert, insertedRows }
+}
+
+/** Indexes of a longest strictly increasing subsequence of the non-null values. */
+export function longestIncreasing(values: readonly (number | null)[]): number[] {
+  const n = values.length
+  const length: number[] = Array.from({ length: n }, () => 0)
+  const previous: number[] = Array.from({ length: n }, () => -1)
+  let best = -1
+  for (let i = 0; i < n; i++) {
+    const v = values[i]
+    if (v === null || v === undefined) continue
+    length[i] = 1
+    for (let j = 0; j < i; j++) {
+      const w = values[j]
+      if (w !== null && w !== undefined && w < v && length[j]! + 1 > length[i]!) {
+        length[i] = length[j]! + 1
+        previous[i] = j
+      }
+    }
+    if (best < 0 || length[i]! > length[best]!) best = i
+  }
+  const out: number[] = []
+  for (let i = best; i >= 0; i = previous[i]!) out.unshift(i)
+  return out
 }
 
 export type StopTimeError = 'departure_before_arrival' | 'before_previous_stop' | 'invalid_time'
@@ -165,22 +196,33 @@ export function liveDelayMinutes(
 }
 
 /**
- * A planned time as typed ("10:30", "25:10" for after midnight) on the trip's
- * service date in the operator's time zone, as an ISO timestamp. Empty input
- * is null; unreadable input is undefined.
+ * A planned time as typed ("10:30", "10:30:15", "25:10" for after midnight)
+ * on the trip's service date in the operator's time zone, as an ISO
+ * timestamp. Empty input is null; unreadable input is undefined.
  */
 export function plannedInstant(input: string, serviceDate: string, timeZone: string): string | null | undefined {
-  if (!input.trim()) return null
-  const seconds = parseTimeOfDay(input)
-  if (seconds === null) return undefined
-  return zonedInstant(serviceDate, seconds, timeZone).toISOString()
+  const text = input.trim()
+  if (!text) return null
+  const m = /^(\d{1,2}:\d{2})(?::(\d{2}))?$/.exec(text)
+  const seconds = m ? parseTimeOfDay(m[1]!) : null
+  if (seconds === null || (m![2] !== undefined && Number(m![2]) > 59)) return undefined
+  return zonedInstant(serviceDate, seconds + Number(m![2] ?? 0), timeZone).toISOString()
 }
 
-/** The form value of a planned time: "HH:MM" from the service date's midnight ("25:10" the next day). */
+/**
+ * The form value of a planned time: "HH:MM" from the service date's midnight
+ * ("25:10" the next day), with ":SS" only when the time has seconds, so
+ * saving unchanged times writes nothing.
+ */
 export function plannedInput(iso: string | null, serviceDate: string, timeZone: string): string {
   if (!iso) return ''
+  // Wall-clock time on the instant's local date, plus whole days after the
+  // service date (as plannedInstant reads it, also on DST change days).
   const instant = new Date(iso)
   const days = daysInRange(serviceDate, dateInTimeZone(instant, timeZone)) - 1
+  if (days < 0) return ''
   const [h, m] = formatClock(instant, timeZone).split(':').map(Number) as [number, number]
-  return formatTimeOfDay(days * 86_400 + h * 3600 + m * 60)
+  const seconds = instant.getUTCSeconds()
+  const hhmm = formatTimeOfDay(days * 86_400 + h * 3600 + m * 60)
+  return seconds ? `${hhmm}:${String(seconds).padStart(2, '0')}` : hhmm
 }

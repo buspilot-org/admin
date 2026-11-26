@@ -6,7 +6,8 @@ import {
   checkBrandingImage,
   isBrandingUrl,
   readBranding,
-  staleBrandingPaths,
+  replacedBrandingPaths,
+  sniffImageType,
 } from '../../app/utils/branding'
 import { diffIds, staffLabel } from '../../app/utils/drivers'
 
@@ -31,13 +32,22 @@ describe('branding images', () => {
     const base = `https://x.supabase.co/storage/v1/object/public/operator-branding/${OP}`
     expect(brandingPathFromUrl(`${base}/logo-2.png?v=1`)).toBe(`${OP}/logo-2.png`)
     expect(brandingPathFromUrl('https://elsewhere.example/logo.png')).toBeNull()
-    const now = new Date('2026-11-26T12:00:00Z')
-    const old = '2026-11-26T09:00:00Z'
-    const files = ['logo.png', 'logo-1.png', 'logo-2.webp', 'cover-3.jpg', 'notes.txt'].map(name => ({ name, created_at: old }))
-    expect(staleBrandingPaths(OP, files, [`${base}/logo-2.webp`, null], now)).toEqual([`${OP}/logo.png`, `${OP}/logo-1.png`, `${OP}/cover-3.jpg`])
-    expect(staleBrandingPaths(OP, files, [`${base}/logo-2.webp?v=1`, `${base}/cover-3.jpg`], now)).toEqual([`${OP}/logo.png`, `${OP}/logo-1.png`])
-    // Someone else's recent, not yet saved upload stays.
-    expect(staleBrandingPaths(OP, [{ name: 'logo-9.png', created_at: '2026-11-26T11:50:00Z' }], [null, null], now)).toEqual([])
+    const saved = `${base}/logo-1.png`
+    // Replaced: the old file goes, the new one stays.
+    expect(replacedBrandingPaths(OP, [saved, null], [`${base}/logo-2.webp`, null])).toEqual([`${OP}/logo-1.png`])
+    // Unchanged: nothing goes, also with a query string.
+    expect(replacedBrandingPaths(OP, [saved, null], [`${saved}?v=1`, null])).toEqual([])
+    // Uploads on this page that were not saved go; the saved one stays.
+    expect(replacedBrandingPaths(OP, [saved], [saved], [`${OP}/logo-3.png`, `${OP}/logo-1.png`])).toEqual([`${OP}/logo-3.png`])
+    // Never files of another operator or outside the bucket.
+    expect(replacedBrandingPaths(OP, ['https://elsewhere.example/logo.png', `https://x.supabase.co/storage/v1/object/public/operator-branding/other/logo.png`], [null])).toEqual([])
+  })
+
+  it('recognises PNG, JPEG and WebP by their first bytes', () => {
+    expect(sniffImageType(new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0]))).toBe('image/png')
+    expect(sniffImageType(new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0]))).toBe('image/jpeg')
+    expect(sniffImageType(new TextEncoder().encode('RIFF\u0000\u0000\u0000\u0000WEBP'))).toBe('image/webp')
+    expect(sniffImageType(new TextEncoder().encode('<svg xmlns='))).toBeNull()
   })
 
   it('reads only the documented branding keys', () => {

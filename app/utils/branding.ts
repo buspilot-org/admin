@@ -17,6 +17,18 @@ export function checkBrandingImage(file: { type: string, size: number }): Brandi
 }
 
 /**
+ * The image type from a file's first bytes (PNG, JPEG or WebP), or null. The
+ * browser's `file.type` comes from the file name; this checks the content.
+ */
+export function sniffImageType(bytes: Uint8Array): keyof typeof BRANDING_TYPES | null {
+  const starts = (sig: number[], at = 0) => sig.every((b, i) => bytes[at + i] === b)
+  if (starts([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A])) return 'image/png'
+  if (starts([0xFF, 0xD8, 0xFF])) return 'image/jpeg'
+  if (starts([0x52, 0x49, 0x46, 0x46]) && starts([0x57, 0x45, 0x42, 0x50], 8)) return 'image/webp'
+  return null
+}
+
+/**
  * "<operator id>/logo-<version>.png": the first segment decides whose file it
  * is (Storage policy). Each upload gets a new name, so the file the apps show
  * stays until the owner saves the new one, and caches never serve an old
@@ -44,27 +56,22 @@ export function brandingPathFromUrl(url: string | null): string | null {
 }
 
 /**
- * Logo and cover files in an operator's folder that the saved branding no
- * longer uses (replaced, removed, or uploaded and never saved): deleted after
- * a save.
+ * Files to delete after a successful save: the saved images this save
+ * replaced or removed, and images uploaded on this page that were not saved.
+ * Only files of the operator's own folder; never one the new branding uses.
+ * (No sweep of the folder: another owner's unsaved upload must survive.)
  */
-export function staleBrandingPaths(
+export function replacedBrandingPaths(
   operatorId: string,
-  files: readonly { name: string, created_at?: string | null }[],
-  keepUrls: readonly (string | null)[],
-  now: Date = new Date(),
+  before: readonly (string | null)[],
+  after: readonly (string | null)[],
+  uploadedHere: readonly string[] = [],
 ): string[] {
-  const keep = new Set(keepUrls.map(brandingPathFromUrl).filter((p): p is string => !!p))
-  return files
-    .filter(f => /^(logo|cover)(-[\w-]+)?\.(png|jpg|webp)$/.test(f.name))
-    // Recent uploads may belong to another owner (or tab) who has not saved yet.
-    .filter(f => !f.created_at || now.getTime() - new Date(f.created_at).getTime() > STALE_UPLOAD_MS)
-    .map(f => `${operatorId}/${f.name}`)
-    .filter(path => !keep.has(path))
+  const keep = new Set(after.map(brandingPathFromUrl).filter((p): p is string => !!p))
+  const candidates = [...before.map(brandingPathFromUrl), ...uploadedHere]
+  return [...new Set(candidates)]
+    .filter((p): p is string => !!p && p.startsWith(`${operatorId}/`) && !keep.has(p))
 }
-
-/** Unsaved uploads younger than this are left alone by the cleanup. */
-export const STALE_UPLOAD_MS = 60 * 60 * 1000
 
 // A type alias (not an interface), so it fits the Json column type.
 export type Branding = {
