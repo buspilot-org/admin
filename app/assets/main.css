@@ -1,7 +1,15 @@
-/* Japanese first: system fonts that cover kana and kanji. */
+/* Brand font (self-hosted, see fonts.css) with the brand fallbacks. */
+:root {
+  --bp-font: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
+  /* Vuetify components that set their own font read these. */
+  --v-font-body: var(--bp-font);
+  --v-font-heading: var(--bp-font);
+}
+
 html,
 body {
-  font-family: system-ui, -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, sans-serif;
+  font-family: var(--bp-font);
+  font-weight: 500;
 }
 
 .v-application {
@@ -34,4 +42,12 @@ body {
   body.printing-sheet > .print-sheet {
     display: block;
   }
+}
+
+/* "Buspilot" next to the symbol: the wordmark is set in weight 800. */
+.brand-wordmark {
+  font-size: 1.375rem;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: 0;
 }

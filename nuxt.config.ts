@@ -1,6 +1,30 @@
 // Buspilot admin console. A static single-page app (no server rendering):
 // every request to Supabase runs with the signed-in staff member's own
 // session, so row-level security decides what they may read and change.
+import brand from './app/assets/brand/colors.json'
+
+// Vuetify themes from the Buspilot brand tokens (app/assets/brand/).
+// error is not a brand token; dark mode gets a lighter red so that error text
+// on the dark surface meets WCAG AA (Vuetify's #CF6679 is 4.4:1 there).
+function vuetifyColors(c: typeof brand.light, error?: string) {
+  return {
+    ...(error ? { error } : {}),
+    'primary': c.primary,
+    'on-primary': c.onPrimary,
+    'secondary': c.primaryStrong,
+    'on-secondary': c.onPrimary,
+    'background': c.background,
+    'on-background': c.text,
+    'surface': c.surface,
+    'on-surface': c.text,
+    'success': c.onTime,
+    'on-success': c.onStatus,
+    // Warnings (delays, stale positions) use the brand's delayed colour.
+    'warning': c.delayed,
+    'on-warning': c.onStatus,
+  }
+}
+
 export default defineNuxtConfig({
   compatibilityDate: '2026-11-01',
   ssr: false,
@@ -8,14 +32,23 @@ export default defineNuxtConfig({
 
   modules: ['@nuxt/eslint', '@nuxtjs/supabase', '@nuxtjs/i18n', 'vuetify-nuxt-module'],
 
-  css: ['@mdi/font/css/materialdesignicons.css', 'maplibre-gl/dist/maplibre-gl.css', '~/assets/main.css'],
+  css: ['@mdi/font/css/materialdesignicons.css', 'maplibre-gl/dist/maplibre-gl.css', '~/assets/fonts.css', '~/assets/brand/tokens.css', '~/assets/main.css'],
 
   app: {
     head: {
       htmlAttrs: { lang: 'ja' },
       title: 'Buspilot',
-      meta: [{ name: 'robots', content: 'noindex' }],
-      link: [{ rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
+      meta: [
+        { name: 'robots', content: 'noindex' },
+        { name: 'theme-color', content: brand.light.primary, media: '(prefers-color-scheme: light)' },
+        { name: 'theme-color', content: brand.dark.background, media: '(prefers-color-scheme: dark)' },
+      ],
+      link: [
+        { rel: 'icon', href: '/favicon.ico', sizes: '48x48' },
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+        { rel: 'manifest', href: '/site.webmanifest' },
+      ],
     },
   },
 
@@ -77,11 +110,11 @@ export default defineNuxtConfig({
         themes: {
           light: {
             dark: false,
-            colors: { primary: '#1E6FD9', secondary: '#5065A8' },
+            colors: vuetifyColors(brand.light),
           },
           dark: {
             dark: true,
-            colors: { primary: '#6EA8FE', secondary: '#9DB0E8' },
+            colors: vuetifyColors(brand.dark, '#F2808E'),
           },
         },
       },

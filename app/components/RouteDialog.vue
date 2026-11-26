@@ -17,7 +17,7 @@ const notify = useNotify()
 
 const name = ref<I18nText>({})
 const shortName = ref('')
-const color = ref('1E6FD9')
+const color = ref(DEFAULT_COLOR)
 const visibility = ref<Visibility | 'default'>('default')
 const active = ref(true)
 const busy = ref(false)
@@ -26,7 +26,7 @@ watch(open, (isOpen) => {
   if (!isOpen) return
   name.value = i18nFormValue(props.route?.name, op.languages.value)
   shortName.value = props.route?.short_name ?? ''
-  color.value = props.route?.color ?? '1E6FD9'
+  color.value = props.route?.color ?? DEFAULT_COLOR
   visibility.value = props.route?.visibility ?? 'default'
   active.value = props.route?.active ?? true
 }, { immediate: true })
@@ -71,7 +71,7 @@ async function save() {
           <v-text-field v-model="color" :label="t('routes.color')" prefix="#" maxlength="7" style="max-width: 180px" />
           <input
             type="color"
-            :value="`#${hex ?? '1E6FD9'}`"
+            :value="`#${hex ?? DEFAULT_COLOR}`"
             :aria-label="t('routes.color')"
             style="width: 48px; height: 40px; border: 0; background: none"
             @input="color = ($event.target as HTMLInputElement).value.slice(1).toUpperCase()"

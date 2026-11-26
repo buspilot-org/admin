@@ -63,7 +63,7 @@ watchEffect(() => {
       <v-card-item>
         <div class="d-flex align-center ga-2 mb-2">
           <img src="/favicon.svg" alt="" width="32" height="32">
-          <span class="text-h5">Buspilot</span>
+          <span class="text-h5 brand-wordmark">Buspilot</span>
         </div>
         <v-card-title class="px-0">{{ t('auth.title') }}</v-card-title>
         <v-card-subtitle class="px-0 text-wrap">

@@ -32,7 +32,7 @@ function fill() {
   if (!o) return
   const branding = (o.branding && typeof o.branding === 'object' && !Array.isArray(o.branding) ? o.branding : {}) as Record<string, Json | undefined>
   name.value = i18nFormValue(o.name, o.languages)
-  color.value = typeof branding.color === 'string' ? branding.color : '1E6FD9'
+  color.value = typeof branding.color === 'string' ? branding.color : DEFAULT_COLOR
   logoUrl.value = typeof branding.logo_url === 'string' ? branding.logo_url : ''
   languages.value = [...o.languages]
   timezone.value = o.timezone
@@ -113,7 +113,7 @@ async function save() {
               <v-text-field v-model="color" :label="t('settings.color')" prefix="#" maxlength="7" style="max-width: 180px" data-testid="brand-color" />
               <input
                 type="color"
-                :value="`#${hex ?? '1E6FD9'}`"
+                :value="`#${hex ?? DEFAULT_COLOR}`"
                 :aria-label="t('settings.color')"
                 style="width: 48px; height: 40px; border: 0; background: none"
                 @input="color = ($event.target as HTMLInputElement).value.slice(1).toUpperCase()"
@@ -135,7 +135,7 @@ async function save() {
               <v-btn v-for="l in languages" :key="l" :value="l" size="small">{{ l.toUpperCase() }}</v-btn>
             </v-btn-toggle>
             <div class="rider-card rounded-lg overflow-hidden border" :lang="previewLang">
-              <div class="pa-4 d-flex align-center ga-3" :style="{ background: `#${hex ?? '1E6FD9'}`, color: `#${bestTextColor(hex ?? '1E6FD9')}` }">
+              <div class="pa-4 d-flex align-center ga-3" :style="{ background: `#${hex ?? DEFAULT_COLOR}`, color: `#${bestTextColor(hex ?? DEFAULT_COLOR)}` }">
                 <img v-if="logoUrl && logoValid" :src="logoUrl" alt="" width="40" height="40" class="rounded bg-white" style="object-fit: contain" referrerpolicy="no-referrer">
                 <v-icon v-else icon="mdi-bus-school" size="40" />
                 <div class="text-h6">{{ previewName }}</div>
