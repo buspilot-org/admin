@@ -3,9 +3,9 @@ import {
   effectiveMapPermission,
   longestIncreasing,
   liveDelayMinutes,
-  planStopChanges,
   plannedInput,
   plannedInstant,
+  planStops,
   stopTimeErrors,
 } from '../../app/utils/liveTrip'
 import type { PlannedStop, PlannedStopForm } from '../../app/utils/liveTrip'
@@ -18,83 +18,74 @@ const saved: PlannedStop[] = [
 ]
 const asForm = (s: PlannedStop): PlannedStopForm => ({ origin: s.stop_sequence, stop_id: s.stop_id, planned_arrival: s.planned_arrival, planned_departure: s.planned_departure })
 
-describe('planStopChanges', () => {
+// The sequence each form row is saved at, in form order.
+const seqs = (plan: { stops: PlannedStop[] }) => plan.stops.map(s => [s.stop_sequence, s.stop_id])
+
+describe('planStops', () => {
   it('numbers the stops of a new trip with gaps', () => {
     const rows = ['a', 'b'].map(stop_id => ({ origin: null, stop_id, planned_arrival: null, planned_departure: null }))
-    expect(planStopChanges([], rows)).toEqual({
-      remove: [],
-      update: [],
-      insert: [
+    expect(planStops([], rows)).toEqual({
+      stops: [
         { stop_sequence: 10, stop_id: 'a', planned_arrival: null, planned_departure: null },
         { stop_sequence: 20, stop_id: 'b', planned_arrival: null, planned_departure: null },
       ],
-      insertedRows: [0, 1],
+      remove: [],
     })
   })
 
-  it('does nothing when nothing changed', () => {
-    expect(planStopChanges(saved, saved.map(asForm))).toEqual({ remove: [], update: [], insert: [], insertedRows: [] })
+  it('keeps every sequence when nothing changed', () => {
+    expect(planStops(saved, saved.map(asForm))).toEqual({ stops: saved, remove: [] })
   })
 
-  it('updates times in place, keeping the sequence (and its followers)', () => {
+  it('keeps the sequence (and its followers) when only times change', () => {
     const rows = saved.map(asForm)
     rows[1] = { ...rows[1]!, planned_arrival: at('02:10') }
-    expect(planStopChanges(saved, rows)).toEqual({
+    expect(planStops(saved, rows)).toEqual({
+      stops: [saved[0], { stop_sequence: 20, stop_id: 'b', planned_arrival: at('02:10'), planned_departure: null }, saved[2]],
       remove: [],
-      update: [{ stop_sequence: 20, stop_id: 'b', planned_arrival: at('02:10'), planned_departure: null }],
-      insert: [],
-      insertedRows: [],
     })
   })
 
-  it('treats the same instant in another notation as unchanged', () => {
-    const rows = saved.map(asForm)
-    rows[0] = { ...rows[0]!, planned_arrival: '2026-11-26T10:00:00+09:00' }
-    expect(planStopChanges(saved, rows).update).toEqual([])
-  })
-
-  it('inserts a new stop between two kept ones', () => {
+  it('gives a new stop between two kept ones a free sequence', () => {
     const rows = [asForm(saved[0]!), { origin: null, stop_id: 'x', planned_arrival: null, planned_departure: null }, asForm(saved[1]!), asForm(saved[2]!)]
-    const changes = planStopChanges(saved, rows)
-    expect(changes.remove).toEqual([])
-    expect(changes.insert).toEqual([{ stop_sequence: 15, stop_id: 'x', planned_arrival: null, planned_departure: null }])
+    const plan = planStops(saved, rows)
+    expect(plan.remove).toEqual([])
+    expect(seqs(plan)).toEqual([[10, 'a'], [15, 'x'], [20, 'b'], [30, 'c']])
   })
 
   it('re-creates a stop that got another stop, so followers do not move to it', () => {
     const rows = saved.map(asForm)
     rows[1] = { ...rows[1]!, stop_id: 'z' }
-    const changes = planStopChanges(saved, rows)
-    expect(changes.remove).toEqual([20])
+    const plan = planStops(saved, rows)
+    expect(plan.remove).toEqual([20])
     // Not 20 again: a removed sequence is never reused.
-    expect(changes.insert.map(s => [s.stop_sequence, s.stop_id])).toEqual([[19, 'z']])
+    expect(seqs(plan)).toEqual([[10, 'a'], [19, 'z'], [30, 'c']])
   })
 
   it('re-creates only the moved stop when the last one moves to the front', () => {
     const four: PlannedStop[] = [...saved, { stop_sequence: 40, stop_id: 'd', planned_arrival: null, planned_departure: null }]
-    const changes = planStopChanges(four, [asForm(four[3]!), ...saved.map(asForm)])
-    expect(changes.remove).toEqual([40])
-    expect(changes.update).toEqual([])
-    expect(changes.insert.map(s => [s.stop_sequence, s.stop_id])).toEqual([[4, 'd']])
-    expect(changes.insertedRows).toEqual([0])
+    const plan = planStops(four, [asForm(four[3]!), ...saved.map(asForm)])
+    expect(plan.remove).toEqual([40])
+    expect(seqs(plan)).toEqual([[4, 'd'], [10, 'a'], [20, 'b'], [30, 'c']])
   })
 
   it('re-creates only the moved stop when the first one moves to the end', () => {
-    const changes = planStopChanges(saved, [asForm(saved[1]!), asForm(saved[2]!), asForm(saved[0]!)])
-    expect(changes.remove).toEqual([10])
-    expect(changes.insert.map(s => [s.stop_sequence, s.stop_id])).toEqual([[40, 'a']])
+    const plan = planStops(saved, [asForm(saved[1]!), asForm(saved[2]!), asForm(saved[0]!)])
+    expect(plan.remove).toEqual([10])
+    expect(seqs(plan)).toEqual([[20, 'b'], [30, 'c'], [40, 'a']])
   })
 
   it('keeps two of three when two stops swap places', () => {
-    const changes = planStopChanges(saved, [asForm(saved[1]!), asForm(saved[0]!), asForm(saved[2]!)])
-    expect(changes.remove).toHaveLength(1)
-    expect(changes.insert).toHaveLength(1)
+    const plan = planStops(saved, [asForm(saved[1]!), asForm(saved[0]!), asForm(saved[2]!)])
+    expect(plan.remove).toHaveLength(1)
+    expect(plan.stops.filter(s => [10, 20, 30].includes(s.stop_sequence))).toHaveLength(2)
   })
 
   it('removes deleted stops and re-creates moved ones', () => {
     // c moved before a, b removed: c keeps its place, a comes after it.
-    const changes = planStopChanges(saved, [asForm(saved[2]!), asForm(saved[0]!)])
-    expect(changes.remove.sort()).toEqual([10, 20])
-    expect(changes.insert.map(s => [s.stop_sequence, s.stop_id])).toEqual([[40, 'a']])
+    const plan = planStops(saved, [asForm(saved[2]!), asForm(saved[0]!)])
+    expect(plan.remove.sort()).toEqual([10, 20])
+    expect(seqs(plan)).toEqual([[30, 'c'], [40, 'a']])
   })
 
   it('re-creates the following stop when there is no free sequence', () => {
@@ -103,12 +94,12 @@ describe('planStopChanges', () => {
       { stop_sequence: 1, stop_id: 'b', planned_arrival: null, planned_departure: null },
     ]
     const rows = [asForm(tight[0]!), { origin: null, stop_id: 'x', planned_arrival: null, planned_departure: null }, asForm(tight[1]!)]
-    const changes = planStopChanges(tight, rows)
-    expect(changes.remove).toEqual([1])
-    expect(changes.insert.map(s => [s.stop_sequence, s.stop_id])).toEqual([[11, 'x'], [21, 'b']])
+    const plan = planStops(tight, rows)
+    expect(plan.remove).toEqual([1])
+    expect(seqs(plan)).toEqual([[0, 'a'], [11, 'x'], [21, 'b']])
   })
 
-  it('gives every inserted row a distinct, increasing sequence', () => {
+  it('gives every row a distinct, increasing sequence', () => {
     const rows = [
       { origin: null, stop_id: 'p', planned_arrival: null, planned_departure: null },
       asForm(saved[0]!),
@@ -116,11 +107,12 @@ describe('planStopChanges', () => {
       { origin: null, stop_id: 'r', planned_arrival: null, planned_departure: null },
       asForm(saved[2]!),
     ]
-    const changes = planStopChanges(saved, rows)
-    const kept = saved.filter(s => !changes.remove.includes(s.stop_sequence)).map(s => s.stop_sequence)
-    const all = [...kept, ...changes.insert.map(s => s.stop_sequence)].sort((a, b) => a - b)
-    expect(new Set(all).size).toBe(rows.length)
-    expect(changes.insert.map(s => s.stop_id)).toEqual(['p', 'q', 'r'])
+    const plan = planStops(saved, rows)
+    const sequences = plan.stops.map(s => s.stop_sequence)
+    expect(sequences).toEqual([...sequences].sort((a, b) => a - b))
+    expect(new Set(sequences).size).toBe(rows.length)
+    expect(plan.stops.map(s => s.stop_id)).toEqual(['p', 'a', 'q', 'r', 'c'])
+    expect(plan.remove).toEqual([20])
   })
 })
 

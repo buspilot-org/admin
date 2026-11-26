@@ -130,8 +130,29 @@ test.describe('editing a live trip', () => {
       method: 'PATCH',
       body: JSON.stringify({ state: 'arrived', arrived_at: new Date().toISOString() }),
     })
-    const res = await asUser(await tokenOf(OWNER_STATE), `/rest/v1/trip_instance_stop?trip_instance_id=eq.${tripId}&stop_sequence=eq.10`, { method: 'DELETE' })
+    const owner = await tokenOf(OWNER_STATE)
+    const res = await asUser(owner, `/rest/v1/trip_instance_stop?trip_instance_id=eq.${tripId}&stop_sequence=eq.10`, { method: 'DELETE' })
     expect(res.status).toBe(400)
+
+    // The dialog saves with save_live_trip: all or nothing, so a refused stop
+    // removal also keeps the new title (no half-saved trip).
+    const save = await asUser(owner, '/rest/v1/rpc/save_live_trip', {
+      method: 'POST',
+      body: JSON.stringify({
+        p_trip_id: tripId,
+        p_title: { ja: `${title} 変更` },
+        p_vehicle_id: VEHICLE_ID,
+        p_stops: [
+          { stop_sequence: 20, stop_id: STOPS.sannomiya, planned_arrival: jst('09:20') },
+          { stop_sequence: 30, stop_id: STOPS.shinKobe, planned_arrival: jst('09:40') },
+        ],
+      }),
+    })
+    expect(save.status).toBe(400)
+    const [trip] = await select<{ title: { ja: string } }>('trip_instance', `id=eq.${tripId}&select=title`)
+    expect(trip!.title.ja).toBe(title)
+    const stops = await select<{ stop_sequence: number }>('trip_instance_stop', `trip_instance_id=eq.${tripId}&select=stop_sequence&order=stop_sequence`)
+    expect(stops.map(s => s.stop_sequence)).toEqual([10, 20, 30])
   })
 })
 
@@ -172,6 +193,15 @@ test.describe('what RLS refuses', () => {
         body: JSON.stringify({ vehicle_id: VEHICLE_ID }),
       })
       expect(await takeOver.json()).toEqual([])
+      // The dialog's save call is refused the same way (42501), with nothing saved.
+      const save = await asUser(driver, '/rest/v1/rpc/save_live_trip', {
+        method: 'POST',
+        body: JSON.stringify({ p_trip_id: tripId, p_title: { ja: `${E2E_LABEL_PREFIX}乗っ取り` }, p_vehicle_id: VEHICLE_ID }),
+      })
+      expect(save.status).toBe(403)
+      expect((await save.json()).code).toBe('42501')
+      const [trip] = await select<{ vehicle_id: string }>('trip_instance', `id=eq.${tripId}&select=vehicle_id`)
+      expect(trip!.vehicle_id).toBe(other!.id)
     }
     finally {
       await deleteTestLiveTrips()

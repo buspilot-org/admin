@@ -4,10 +4,10 @@
 // without the map) and how long riders see it. Drivers create trips for
 // their own vehicles; the server checks that (staff_trip_access).
 //
-// The trip is inserted first, then its planned stops and audiences (the
-// server has no single call for this). If a later step fails, the dialog
-// stays open on the saved trip, so saving again finishes the job.
-import type { Database } from '~/types/database.types'
+// One call saves the whole form (save_live_trip: trip, planned stops and
+// audiences in one transaction, with the caller's rights). If it fails,
+// nothing is saved and the dialog stays open with what was typed.
+import type { Database, Json } from '~/types/database.types'
 import type { PlannedStop, StopTimeError } from '~/utils/liveTrip'
 
 type T = Database['public']['Tables']
@@ -46,12 +46,10 @@ const audienceForm = ref<Record<string, AudienceForm>>({})
 const savedStops = shallowRef<PlannedStop[]>([])
 const savedAudiences = shallowRef<{ audience_id: string, can_see_map: boolean }[]>([])
 const loadingPlan = ref(false)
-// The route as saved (set on open and after each successful write).
+// The route as saved (set on open).
 const savedRouteId = ref<string | null>(null)
 // Shown before a save that removes or re-creates planned stops.
 const confirmLoss = ref(false)
-// A new trip whose stops or audiences could not be saved: offer to discard it.
-const unfinishedTrip = ref<string | null>(null)
 const busy = ref(false)
 let nextKey = 0
 
@@ -79,7 +77,6 @@ watch(open, async (isOpen) => {
   visibleUntil.value = tr ? toLocalInput(tr.visible_until, tz.value) : ''
   stopRows.value = []
   confirmLoss.value = false
-  unfinishedTrip.value = null
   audienceForm.value = emptyAudiences()
   savedStops.value = []
   savedAudiences.value = []
@@ -97,12 +94,8 @@ function newRow(): StopForm {
   return { key: nextKey++, origin: null, stopId: null, arrival: '', departure: '', locked: false }
 }
 
-/**
- * Saved planned stops, their progress and audiences of a trip. With
- * `fillForm`, the form shows them; otherwise (after a failed save) the form
- * keeps what was typed and the next save compares with the saved state.
- */
-async function loadPlan(id: string, fillForm = true) {
+/** Saved planned stops, their progress and audiences of a trip, into the form. */
+async function loadPlan(id: string) {
   loadingPlan.value = true
   const [st, ev, au] = await Promise.all([
     supabase.from('trip_instance_stop').select('stop_sequence, stop_id, planned_arrival, planned_departure').eq('trip_instance_id', id).order('stop_sequence'),
@@ -114,7 +107,6 @@ async function loadPlan(id: string, fillForm = true) {
   if (failed?.error) return notify.error(failed.error)
   savedStops.value = st.data ?? []
   savedAudiences.value = au?.data ?? []
-  if (!fillForm) return
   const reached = new Set((ev.data ?? []).filter(e => e.state !== 'upcoming' && e.state !== 'approaching').map(e => e.stop_sequence))
   stopRows.value = savedStops.value.map(s => ({
     key: nextKey++,
@@ -204,11 +196,12 @@ const valid = computed(() =>
   && (!!tripId.value || serviceDate.value >= today.value),
 )
 
-// Stops that the save removes or re-creates (moved or given another stop):
-// riders who follow them lose their alerts (subscriptions cascade). Staff
-// cannot read subscriptions, so the console warns whenever this happens.
-const pendingChanges = computed(() => planStopChanges(savedStops.value, plannedRows.value))
-const lostStops = computed(() => pendingChanges.value.remove.length)
+// The planned stops to save, with their sequences. Stops that the save
+// removes or re-creates (moved or given another stop): riders who follow them
+// lose their alerts (subscriptions cascade). Staff cannot read subscriptions,
+// so the console warns whenever this happens.
+const stopPlan = computed(() => planStops(savedStops.value, plannedRows.value))
+const lostStops = computed(() => stopPlan.value.remove.length)
 // Removing an audience or changing the route can also take the trip away from
 // riders who follow its stops (the server drops their subscriptions).
 const removedAudiences = computed(() => {
@@ -228,125 +221,30 @@ async function save(confirmed = false) {
   }
   confirmLoss.value = false
   busy.value = true
-  const isNew = !tripId.value
-  try {
-    const values = {
-      title: cleanI18nText(title.value)!,
-      vehicle_id: vehicleId.value,
-      visible_until: visibleUntilIso.value,
-      // Only when it changes: a route change makes the server re-check who
-      // may still follow the trip's stops (and drop the others).
-      ...(isNew || routeChanged.value ? { route_id: routeId.value } : {}),
-    }
-    const chosen = props.audiences ? Object.entries(audienceForm.value).filter(([, a]) => a.on) : []
-    async function upsertAudiences(id: string) {
-      if (!props.audiences || chosen.length === 0) return
-      const { error } = await supabase.from('trip_instance_audience').upsert(
-        chosen.map(([audienceId, a]) => ({
-          operator_id: operatorId!,
-          trip_instance_id: id,
-          audience_id: audienceId,
-          can_see_map: effectiveMapPermission(a.map, routeVisibility.value),
-        })),
-        { onConflict: 'trip_instance_id,audience_id' },
-      )
-      if (error) throw error
-    }
-    if (isNew) {
-      // The id is made here: reading the new row back in the same request
-      // (INSERT … RETURNING) fails the select policy, whose
-      // trip_instance_access(id) does not see the row yet (server follow-up).
-      const id = crypto.randomUUID()
-      const { error } = await supabase
-        .from('trip_instance')
-        .insert({ ...values, id, operator_id: operatorId, service_date: serviceDate.value, kind: 'live', started_by: 'driver' })
-      if (error) throw error
-      tripId.value = id
-      savedRouteId.value = routeId.value
-    }
-    else {
-      // New audiences first, so a route change keeps their riders.
-      await upsertAudiences(tripId.value!)
-      const { error } = await supabase.from('trip_instance').update(values).eq('id', tripId.value!)
-      if (error) throw error
-      savedRouteId.value = routeId.value
-    }
-    const id = tripId.value!
-
-    // The server has no single call for this (server follow-up: one RPC in
-    // one transaction). Writes that only add come first; those that take
-    // something away from riders (audiences, then planned stops with their
-    // followers) come last, so a failure on the way loses as little as
-    // possible, and saving again continues from the saved state.
-    if (isNew) await upsertAudiences(id)
-    const changes = planStopChanges(savedStops.value, plannedRows.value)
-    for (const u of changes.update) {
-      const { error } = await supabase
-        .from('trip_instance_stop')
-        .update({ planned_arrival: u.planned_arrival, planned_departure: u.planned_departure })
-        .eq('trip_instance_id', id)
-        .eq('stop_sequence', u.stop_sequence)
-      if (error) throw error
-    }
-    // New sequences never collide with saved ones (planStopChanges), so
-    // inserting before deleting is safe.
-    if (changes.insert.length > 0) {
-      const { error } = await supabase
-        .from('trip_instance_stop')
-        .insert(changes.insert.map(st => ({ ...st, operator_id: operatorId, trip_instance_id: id })))
-      if (error) throw error
-      // These rows are saved now: if a later step fails, saving again must
-      // keep them, not insert them once more.
-      changes.insertedRows.forEach((rowIndex, k) => {
-        const row = stopRows.value[rowIndex]
-        if (row) row.origin = changes.insert[k]!.stop_sequence
-      })
-    }
-    if (props.audiences) {
-      const { remove } = diffIds(savedAudiences.value.map(a => a.audience_id), chosen.map(([audienceId]) => audienceId))
-      if (remove.length > 0) {
-        const { error } = await supabase.from('trip_instance_audience').delete().eq('trip_instance_id', id).in('audience_id', remove)
-        if (error) throw error
-      }
-    }
-    if (changes.remove.length > 0) {
-      const { error } = await supabase.from('trip_instance_stop').delete().eq('trip_instance_id', id).in('stop_sequence', changes.remove)
-      if (error) throw error
-    }
-  }
-  catch (err) {
-    notify.error(err)
-    if (tripId.value) {
-      if (isNew) unfinishedTrip.value = tripId.value
-      // Compare with what is saved now, so saving again continues from there.
-      await loadPlan(tripId.value, false)
-    }
-    emit('saved')
-    return
-  }
-  finally {
-    busy.value = false
-  }
-  unfinishedTrip.value = null
-  notify.success(t('common.saved'))
-  open.value = false
-  emit('saved')
-}
-
-/**
- * Discards a new trip whose stops or audiences failed: editors delete it,
- * drivers (who may not delete trips) cancel it.
- */
-async function discardUnfinished() {
-  const id = unfinishedTrip.value
-  if (!id) return
-  busy.value = true
-  const { error } = isDriver.value
-    ? await supabase.from('trip_instance').update({ status: 'cancelled' }).eq('id', id)
-    : await supabase.from('trip_instance').delete().eq('id', id)
+  // The whole form: on an update, title, vehicle, route and visible_until
+  // replace the saved values (an omitted argument is null and clears it).
+  // The service date cannot change after creation. Drivers do not manage
+  // audiences: without the list the server keeps them as they are.
+  const { error } = await supabase.rpc('save_live_trip', {
+    p_trip_id: tripId.value ?? undefined,
+    p_operator_id: operatorId,
+    p_title: cleanI18nText(title.value)!,
+    p_vehicle_id: vehicleId.value ?? undefined,
+    p_route_id: routeId.value ?? undefined,
+    p_visible_until: visibleUntilIso.value ?? undefined,
+    p_service_date: tripId.value ? undefined : serviceDate.value,
+    p_stops: stopPlan.value.stops as unknown as Json,
+    p_audiences: props.audiences
+      ? Object.entries(audienceForm.value)
+          .filter(([, a]) => a.on)
+          .map(([audienceId, a]) => ({ audience_id: audienceId, can_see_map: effectiveMapPermission(a.map, routeVisibility.value) }))
+      : undefined,
+  })
   busy.value = false
+  // All or nothing: after an error the saved state is unchanged and the form
+  // keeps what was typed, so saving again retries the same change.
   if (error) return notify.error(error)
-  unfinishedTrip.value = null
+  notify.success(t('common.saved'))
   open.value = false
   emit('saved')
 }
@@ -468,14 +366,6 @@ const timeErrorText = (e: StopTimeError | null | undefined) => (e ? t(`live.erro
         <template #append>
           <v-btn size="small" variant="text" @click="confirmLoss = false">{{ t('common.cancel') }}</v-btn>
           <v-btn size="small" color="warning" variant="flat" :loading="busy" data-testid="live-confirm-save" @click="save(true)">{{ t('live.saveAnyway') }}</v-btn>
-        </template>
-      </v-alert>
-      <v-alert v-if="unfinishedTrip" type="error" variant="tonal" density="compact" class="mx-4" data-testid="live-unfinished">
-        {{ t('live.unfinished') }}
-        <template #append>
-          <v-btn size="small" variant="text" color="error" :loading="busy" data-testid="live-discard" @click="discardUnfinished">
-            {{ isDriver ? t('live.cancel') : t('live.discard') }}
-          </v-btn>
         </template>
       </v-alert>
       <v-card-actions>
